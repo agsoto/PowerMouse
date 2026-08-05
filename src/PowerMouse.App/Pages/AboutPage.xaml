@@ -1,0 +1,44 @@
+<UserControl
+    x:Class="PowerMouse.App.Pages.AboutPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer>
+        <StackPanel
+            MaxWidth="760"
+            Margin="36,32,36,48"
+            HorizontalAlignment="Left"
+            Spacing="18">
+            <Image
+                Width="72"
+                Height="72"
+                HorizontalAlignment="Left"
+                Source="ms-appx:///Assets/PowerMouse.svg" />
+            <StackPanel Spacing="4">
+                <TextBlock
+                    FontSize="32"
+                    FontWeight="SemiBold"
+                    Text="PowerMouse" />
+                <TextBlock
+                    Style="{StaticResource PowerMouseCaptionStyle}"
+                    Text="Keyboard-driven pointer control for Windows." />
+            </StackPanel>
+            <Border
+                Padding="18"
+                Background="{ThemeResource PowerMouseCardBackgroundBrush}"
+                BorderBrush="{ThemeResource PowerMouseCardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="8">
+                    <TextBlock FontWeight="SemiBold" Text="Version" />
+                    <TextBlock x:Name="VersionText" />
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        Style="{StaticResource PowerMouseCaptionStyle}"
+                        Text="PowerMouse runs in the notification area when its settings window is closed. Right-click its tray icon to turn it on, turn it off, or exit." />
+                </StackPanel>
+            </Border>
+            <Button Click="OnExitClicked" Content="Exit PowerMouse" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>PowerMouse.ClickHints</RootNamespace>
+    <AssemblyName>PowerMouse.ClickHints</AssemblyName>
+    <Description>UI target detection and hint assignment primitives.</Description>
+  </PropertyGroup>
+</Project>

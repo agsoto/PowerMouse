@@ -1,0 +1,40 @@
+<Application
+    x:Class="PowerMouse.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="PowerMouseCardBackgroundBrush" Color="#B3FFFFFF" />
+                    <SolidColorBrush x:Key="PowerMouseCardBorderBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="PowerMouseSubtleFillBrush" Color="#08000000" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="PowerMouseCardBackgroundBrush" Color="#0DFFFFFF" />
+                    <SolidColorBrush x:Key="PowerMouseCardBorderBrush" Color="#18FFFFFF" />
+                    <SolidColorBrush x:Key="PowerMouseSubtleFillBrush" Color="#0FFFFFFF" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="PowerMouseCardBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="PowerMouseCardBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                    <SolidColorBrush x:Key="PowerMouseSubtleFillBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <Style x:Key="PowerMouseSectionHeaderStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="20" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Margin" Value="0,28,0,12" />
+            </Style>
+            <Style x:Key="PowerMouseCaptionStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

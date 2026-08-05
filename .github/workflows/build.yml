@@ -1,0 +1,60 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, ARM64]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: Directory.Packages.props
+
+      - name: Restore application
+        run: dotnet restore src/PowerMouse.App/PowerMouse.App.csproj -p:Platform=${{ matrix.platform }}
+
+      - name: Restore tests
+        if: matrix.platform == 'x64'
+        run: dotnet restore tests/PowerMouse.Core.Tests/PowerMouse.Core.Tests.csproj
+
+      - name: Test core
+        if: matrix.platform == 'x64'
+        run: dotnet test tests/PowerMouse.Core.Tests/PowerMouse.Core.Tests.csproj --configuration Release --no-restore --logger trx --results-directory TestResults
+
+      - name: Publish application
+        run: |
+          dotnet publish src/PowerMouse.App/PowerMouse.App.csproj --configuration Release -p:Platform=${{ matrix.platform }} --no-restore --output artifacts/PowerMouse-${{ matrix.platform }}
+          Copy-Item LICENSE artifacts/PowerMouse-${{ matrix.platform }}/LICENSE
+          Copy-Item README.md artifacts/PowerMouse-${{ matrix.platform }}/README.md
+
+      - name: Upload test results
+        if: always() && matrix.platform == 'x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
+          if-no-files-found: ignore
+
+      - name: Upload application
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerMouse-${{ matrix.platform }}
+          path: artifacts/PowerMouse-${{ matrix.platform }}

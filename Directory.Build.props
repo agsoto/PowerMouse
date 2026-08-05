@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath Condition="'$(OS)' == 'Windows_NT'">obj\windows\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath Condition="'$(OS)' != 'Windows_NT'">obj/unix/</BaseIntermediateOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**</DefaultItemExcludes>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <Authors>PowerMouse contributors</Authors>
+    <Product>PowerMouse</Product>
+    <Copyright>Copyright (c) PowerMouse contributors</Copyright>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,15 @@
+.vs/
+.vscode/
+.idea/
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+*.user
+*.suo
+*.nupkg
+
+# Local reference checkouts used during development.
+.research/
+.tools/
+

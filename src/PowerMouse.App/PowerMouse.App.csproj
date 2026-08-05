@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>PowerMouse.App</RootNamespace>
+    <AssemblyName>PowerMouse</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <AppxPackage>false</AppxPackage>
+    <Platforms>x64;ARM64</Platforms>
+    <Platform Condition="'$(Platform)' == ''">x64</Platform>
+    <PlatformTarget>$(Platform)</PlatformTarget>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../PowerMouse.ClickHints/PowerMouse.ClickHints.csproj" />
+    <ProjectReference Include="../PowerMouse.ClickHints.Windows/PowerMouse.ClickHints.Windows.csproj" />
+    <ProjectReference Include="../PowerMouse.Core/PowerMouse.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="Assets/PowerMouse.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <Target Name="IncludeCompiledXamlInPublish" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <_PowerMouseXbf Include="$(TargetDir)**\*.xbf" />
+      <ResolvedFileToPublish Include="@(_PowerMouseXbf)"
+                             RelativePath="%(_PowerMouseXbf.RecursiveDir)%(_PowerMouseXbf.Filename)%(_PowerMouseXbf.Extension)"
+                             CopyToPublishDirectory="PreserveNewest" />
+      <ResolvedFileToPublish Include="$(TargetDir)$(AssemblyName).pri"
+                             RelativePath="$(AssemblyName).pri"
+                             CopyToPublishDirectory="PreserveNewest"
+                             Condition="Exists('$(TargetDir)$(AssemblyName).pri')" />
+    </ItemGroup>
+  </Target>
+</Project>

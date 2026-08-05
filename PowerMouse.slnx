@@ -1,0 +1,34 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/PowerMouse.ClickHints/PowerMouse.ClickHints.csproj">
+      <Platform Solution="*|ARM64" Project="Any CPU" />
+      <Platform Solution="*|x64" Project="Any CPU" />
+    </Project>
+    <Project Path="src/PowerMouse.ClickHints.Windows/PowerMouse.ClickHints.Windows.csproj">
+      <Platform Solution="*|ARM64" Project="Any CPU" />
+      <Platform Solution="*|x64" Project="Any CPU" />
+    </Project>
+    <Project Path="src/PowerMouse.Core/PowerMouse.Core.csproj">
+      <Platform Solution="*|ARM64" Project="Any CPU" />
+      <Platform Solution="*|x64" Project="Any CPU" />
+    </Project>
+    <Project Path="src/PowerMouse.App/PowerMouse.App.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PowerMouse.ClickHints.Tests/PowerMouse.ClickHints.Tests.csproj">
+      <Platform Solution="*|ARM64" Project="Any CPU" />
+      <Platform Solution="*|x64" Project="Any CPU" />
+    </Project>
+    <Project Path="tests/PowerMouse.Core.Tests/PowerMouse.Core.Tests.csproj">
+      <Platform Solution="*|ARM64" Project="Any CPU" />
+      <Platform Solution="*|x64" Project="Any CPU" />
+    </Project>
+  </Folder>
+</Solution>

@@ -1,0 +1,86 @@
+<Window
+    x:Class="PowerMouse.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:PowerMouse.App"
+    xmlns:pages="using:PowerMouse.App.Pages"
+    Title="PowerMouse">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            Padding="16,0"
+            Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Image
+                Width="24"
+                Height="24"
+                Source="ms-appx:///Assets/PowerMouse.svg" />
+            <TextBlock
+                Grid.Column="1"
+                Margin="10,0,0,0"
+                VerticalAlignment="Center"
+                FontWeight="SemiBold"
+                Text="PowerMouse" />
+            <Border
+                x:Name="StatusBadge"
+                Grid.Column="2"
+                Margin="0,0,138,0"
+                Padding="10,4"
+                VerticalAlignment="Center"
+                Background="{ThemeResource PowerMouseSubtleFillBrush}"
+                CornerRadius="12">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse
+                        x:Name="StatusDot"
+                        Width="7"
+                        Height="7"
+                        Fill="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock
+                        x:Name="StatusText"
+                        FontSize="12"
+                        Text="Off" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <NavigationView
+            x:Name="AppNavigation"
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="False"
+            IsTitleBarAutoPaddingEnabled="False"
+            CompactModeThresholdWidth="700"
+            ExpandedModeThresholdWidth="920"
+            OpenPaneLength="220"
+            PaneDisplayMode="Auto"
+            SelectionChanged="OnNavigationSelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="PowerMouse" Tag="settings">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE962;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="About" Tag="about">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE946;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <Grid>
+                <pages:SettingsPage x:Name="SettingsPage" />
+                <pages:AboutPage x:Name="AboutPage" Visibility="Collapsed" />
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Window>

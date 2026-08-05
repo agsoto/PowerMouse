@@ -1,0 +1,274 @@
+<UserControl
+    x:Class="PowerMouse.App.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:PowerMouse.App.Controls">
+    <ScrollViewer HorizontalScrollMode="Disabled">
+        <StackPanel
+            MaxWidth="1000"
+            Margin="36,28,36,56"
+            HorizontalAlignment="Stretch">
+            <Grid Margin="0,0,0,12" ColumnSpacing="24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="5">
+                    <TextBlock
+                        FontSize="32"
+                        FontWeight="SemiBold"
+                        Text="PowerMouse" />
+                    <TextBlock
+                        Style="{StaticResource PowerMouseCaptionStyle}"
+                        Text="Control the pointer and mouse buttons from your keyboard." />
+                </StackPanel>
+                <ToggleSwitch
+                    x:Name="EnabledToggle"
+                    Grid.Column="1"
+                    AutomationProperties.Name="Enable PowerMouse"
+                    Header="Enable PowerMouse"
+                    OffContent="Off"
+                    OnContent="On"
+                    Toggled="OnEnabledToggled" />
+            </Grid>
+
+            <InfoBar
+                x:Name="ValidationInfo"
+                Margin="0,12,0,0"
+                IsClosable="False"
+                IsOpen="False"
+                Severity="Warning"
+                Title="Resolve duplicate bindings" />
+
+            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Profiles" />
+            <controls:SettingCard
+                Description="Switch between complete sets of activation, speed, and key-binding settings."
+                Header="Active profile"
+                IconGlyph="&#xE8D2;">
+                <controls:SettingCard.ActionContent>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ComboBox
+                            x:Name="ProfileCombo"
+                            Width="190"
+                            DisplayMemberPath="Name"
+                            SelectionChanged="OnProfileSelectionChanged" />
+                        <Button
+                            AutomationProperties.Name="Add profile"
+                            Click="OnAddProfileClicked"
+                            ToolTipService.ToolTip="Add profile">
+                            <FontIcon Glyph="&#xE710;" />
+                        </Button>
+                        <Button
+                            AutomationProperties.Name="Duplicate profile"
+                            Click="OnDuplicateProfileClicked"
+                            ToolTipService.ToolTip="Duplicate profile">
+                            <FontIcon Glyph="&#xE8C8;" />
+                        </Button>
+                        <Button
+                            AutomationProperties.Name="Rename profile"
+                            Click="OnRenameProfileClicked"
+                            ToolTipService.ToolTip="Rename profile">
+                            <FontIcon Glyph="&#xE70F;" />
+                        </Button>
+                        <Button
+                            x:Name="DeleteProfileButton"
+                            AutomationProperties.Name="Delete profile"
+                            Click="OnDeleteProfileClicked"
+                            ToolTipService.ToolTip="Delete profile">
+                            <FontIcon Glyph="&#xE74D;" />
+                        </Button>
+                    </StackPanel>
+                </controls:SettingCard.ActionContent>
+            </controls:SettingCard>
+
+            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Activation" />
+            <StackPanel Spacing="2">
+                <controls:SettingCard
+                    Description="Use a lock key or a global shortcut to turn mouse emulation on and off."
+                    Header="Activation method"
+                    IconGlyph="&#xE72E;">
+                    <controls:SettingCard.ActionContent>
+                        <ComboBox
+                            x:Name="ActivationModeCombo"
+                            Width="230"
+                            SelectionChanged="OnActivationModeChanged">
+                            <ComboBoxItem Content="Lock key" />
+                            <ComboBoxItem Content="Keyboard shortcut" />
+                        </ComboBox>
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    x:Name="ActivationKeyCard"
+                    Description="The system lock state and keyboard indicator remain synchronized."
+                    Header="Activation key"
+                    IconGlyph="&#xE765;">
+                    <controls:SettingCard.ActionContent>
+                        <ComboBox
+                            x:Name="ActivationKeyCombo"
+                            Width="230"
+                            DisplayMemberPath="Name"
+                            SelectedValuePath="Code"
+                            SelectionChanged="OnActivationKeyChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    x:Name="ActivationShortcutCard"
+                    Description="Press this combination from anywhere to toggle mouse emulation."
+                    Header="Activation shortcut"
+                    IconGlyph="&#xEDA7;">
+                    <controls:SettingCard.ActionContent>
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <CheckBox x:Name="ShortcutControl" MinWidth="0" Checked="OnShortcutChanged" Content="Ctrl" Unchecked="OnShortcutChanged" />
+                            <CheckBox x:Name="ShortcutAlt" MinWidth="0" Checked="OnShortcutChanged" Content="Alt" Unchecked="OnShortcutChanged" />
+                            <CheckBox x:Name="ShortcutShift" MinWidth="0" Checked="OnShortcutChanged" Content="Shift" Unchecked="OnShortcutChanged" />
+                            <CheckBox x:Name="ShortcutWindows" MinWidth="0" Checked="OnShortcutChanged" Content="Win" Unchecked="OnShortcutChanged" />
+                            <ComboBox
+                                x:Name="ShortcutKeyCombo"
+                                Width="100"
+                                DisplayMemberPath="Name"
+                                SelectedValuePath="Code"
+                                SelectionChanged="OnShortcutChanged" />
+                        </StackPanel>
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Mouse Hints" />
+            <StackPanel Spacing="2">
+                <controls:SettingCard
+                    Description="Show keyboard labels over controls in the active window. Press Esc or click elsewhere to dismiss them."
+                    Header="Show hints shortcut"
+                    IconGlyph="&#xE765;">
+                    <controls:SettingCard.ActionContent>
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <CheckBox x:Name="MouseHintsControl" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Ctrl" Unchecked="OnMouseHintsShortcutChanged" />
+                            <CheckBox x:Name="MouseHintsAlt" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Alt" Unchecked="OnMouseHintsShortcutChanged" />
+                            <CheckBox x:Name="MouseHintsShift" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Shift" Unchecked="OnMouseHintsShortcutChanged" />
+                            <CheckBox x:Name="MouseHintsWindows" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Win" Unchecked="OnMouseHintsShortcutChanged" />
+                            <ComboBox
+                                x:Name="MouseHintsKeyCombo"
+                                Width="100"
+                                DisplayMemberPath="Name"
+                                SelectedValuePath="Code"
+                                SelectionChanged="OnMouseHintsShortcutChanged" />
+                        </StackPanel>
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    Description="Click the selected target automatically. When disabled, selection only moves the pointer."
+                    Header="Automatic click"
+                    IconGlyph="&#xE962;">
+                    <controls:SettingCard.ActionContent>
+                        <CheckBox
+                            x:Name="MouseHintsAutoClickCheckBox"
+                            Checked="OnMouseHintsAutoClickChanged"
+                            Content="Click after moving"
+                            Unchecked="OnMouseHintsAutoClickChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    Description="Hold this modifier while typing the final hint key to temporarily switch between click and move."
+                    Header="Action modifier"
+                    IconGlyph="&#xE765;">
+                    <controls:SettingCard.ActionContent>
+                        <ComboBox
+                            x:Name="MouseHintsActionModifierCombo"
+                            Width="160"
+                            DisplayMemberPath="Name"
+                            SelectedValuePath="Modifier"
+                            SelectionChanged="OnMouseHintsActionModifierChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Mouse movement" />
+            <StackPanel x:Name="MovementBindingsPanel" Spacing="2" />
+
+            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Mouse buttons and scrolling" />
+            <StackPanel x:Name="ButtonBindingsPanel" Spacing="2" />
+
+            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Speed" />
+            <StackPanel Spacing="2">
+                <controls:SettingCard
+                    Description="Pointer distance, in pixels, applied every movement update."
+                    Header="Movement speed"
+                    IconGlyph="&#xE945;">
+                    <controls:SettingCard.ActionContent>
+                        <NumberBox
+                            x:Name="MovementSpeedBox"
+                            Width="160"
+                            Maximum="50"
+                            Minimum="1"
+                            SmallChange="1"
+                            SpinButtonPlacementMode="Compact"
+                            ValueChanged="OnMovementSpeedChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    Description="Hold this key while moving to use the alternate speed."
+                    Header="Alternate speed modifier"
+                    IconGlyph="&#xE765;">
+                    <controls:SettingCard.ActionContent>
+                        <ComboBox
+                            x:Name="AlternateSpeedKeyCombo"
+                            Width="230"
+                            DisplayMemberPath="Name"
+                            SelectedValuePath="Code"
+                            SelectionChanged="OnAlternateSpeedKeyChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    Description="The alternate speed can be either slower or faster than the normal speed."
+                    Header="Alternate speed"
+                    IconGlyph="&#xE945;">
+                    <controls:SettingCard.ActionContent>
+                        <NumberBox
+                            x:Name="AlternateSpeedBox"
+                            Width="160"
+                            Maximum="500"
+                            Minimum="1"
+                            SmallChange="1"
+                            SpinButtonPlacementMode="Compact"
+                            ValueChanged="OnAlternateSpeedChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Behavior" />
+            <StackPanel Spacing="2">
+                <controls:SettingCard
+                    Description="Register PowerMouse for the current Windows user."
+                    Header="Start with Windows"
+                    IconGlyph="&#xE7E8;">
+                    <controls:SettingCard.ActionContent>
+                        <ToggleSwitch x:Name="StartWithWindowsToggle" Toggled="OnGeneralToggleChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    Description="Turn mouse emulation on automatically at startup."
+                    Header="Activate emulation on startup"
+                    IconGlyph="&#xE7B8;">
+                    <controls:SettingCard.ActionContent>
+                        <ToggleSwitch x:Name="EnabledOnStartupToggle" Toggled="OnGeneralToggleChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    Description="Display a small status marker next to the pointer while emulation is on."
+                    Header="Indicator near pointer"
+                    IconGlyph="&#xE7C9;">
+                    <controls:SettingCard.ActionContent>
+                        <ToggleSwitch x:Name="PointerIndicatorToggle" Toggled="OnGeneralToggleChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    Description="Show a notification when mouse emulation turns on or off."
+                    Header="Status notifications"
+                    IconGlyph="&#xEA8F;">
+                    <controls:SettingCard.ActionContent>
+                        <ToggleSwitch x:Name="NotificationsToggle" Toggled="OnGeneralToggleChanged" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
