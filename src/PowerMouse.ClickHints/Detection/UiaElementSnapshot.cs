@@ -13,4 +13,5 @@ public sealed record UiaElementSnapshot(
     bool SupportsSelectionItem,
     bool SupportsExpandCollapse,
     bool SupportsValue,
-    bool SupportsRangeValue);
+    bool SupportsRangeValue,
+    bool IsValueReadOnly = false);

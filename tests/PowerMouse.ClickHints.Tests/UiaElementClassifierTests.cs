@@ -57,14 +57,72 @@ public sealed class UiaElementClassifierTests
 
     [TestMethod]
     [DataRow(UiaControlType.Document)]
-    [DataRow(UiaControlType.Group)]
-    [DataRow(UiaControlType.Pane)]
-    [DataRow(UiaControlType.Text)]
-    public void StructuralInvokeAliasesAreRejected(UiaControlType controlType)
+    [DataRow(UiaControlType.List)]
+    [DataRow(UiaControlType.Menu)]
+    [DataRow(UiaControlType.ToolBar)]
+    public void ContainerInvokeAliasesAreRejected(UiaControlType controlType)
     {
         var element = UiaElementClassifier.Classify(Snapshot() with
         {
             ControlType = controlType,
+            SupportsInvoke = true,
+        });
+
+        Assert.IsNull(element);
+    }
+
+    [TestMethod]
+    [DataRow(UiaControlType.Group)]
+    [DataRow(UiaControlType.Pane)]
+    [DataRow(UiaControlType.Text)]
+    public void NamedStructuralNodesWithPointerActionsAreKept(UiaControlType controlType)
+    {
+        var element = UiaElementClassifier.Classify(Snapshot() with
+        {
+            ControlType = controlType,
+            SupportsInvoke = true,
+        });
+
+        Assert.IsNotNull(element);
+        Assert.IsTrue(element.Interaction.HasFlag(ElementInteraction.Invoke));
+    }
+
+    [TestMethod]
+    public void AnonymousStructuralInvokeAliasIsRejected()
+    {
+        var element = UiaElementClassifier.Classify(Snapshot() with
+        {
+            ControlType = UiaControlType.Text,
+            Name = null,
+            SupportsInvoke = true,
+        });
+
+        Assert.IsNull(element);
+    }
+
+    [TestMethod]
+    public void CompactAnonymousInvokeGroupIsKeptAsAnIconControl()
+    {
+        var element = UiaElementClassifier.Classify(Snapshot() with
+        {
+            Name = null,
+            Bounds = new ElementBounds(851, 329, 38, 108),
+            ControlType = UiaControlType.Group,
+            SupportsInvoke = true,
+        });
+
+        Assert.IsNotNull(element);
+        Assert.IsTrue(element.Interaction.HasFlag(ElementInteraction.Invoke));
+    }
+
+    [TestMethod]
+    public void WideAnonymousInvokeGroupRemainsRejectedAsALayoutContainer()
+    {
+        var element = UiaElementClassifier.Classify(Snapshot() with
+        {
+            Name = null,
+            Bounds = new ElementBounds(799, 146, 1350, 1447),
+            ControlType = UiaControlType.Group,
             SupportsInvoke = true,
         });
 
@@ -122,6 +180,30 @@ public sealed class UiaElementClassifierTests
 
         Assert.IsNotNull(element);
         Assert.AreEqual(bounds, element.Bounds);
+    }
+
+    [TestMethod]
+    public void SplitButtonKeepsPrimaryActionSeparateFromChildDropdown()
+    {
+        var bounds = new ElementBounds(10, 20, 300, 32);
+        var element = UiaElementClassifier.Classify(Snapshot() with
+        {
+            Bounds = bounds, ControlType = UiaControlType.SplitButton, SupportsExpandCollapse = true,
+        });
+        Assert.IsNotNull(element);
+        Assert.AreEqual(bounds, element.Bounds);
+    }
+
+    [TestMethod]
+    public void StructuralContainersDoNotBecomeBlankAreaTargets()
+    {
+        foreach (var type in new[] { UiaControlType.Tree, UiaControlType.Header, UiaControlType.StatusBar })
+        {
+            Assert.IsNull(UiaElementClassifier.Classify(Snapshot() with
+            {
+                ControlType = type, IsKeyboardFocusable = true, SupportsValue = true,
+            }));
+        }
     }
 
     private static UiaElementSnapshot Snapshot() => new(

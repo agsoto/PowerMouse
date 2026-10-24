@@ -10,13 +10,6 @@ public static class UiaElementClassifier
             return null;
         }
 
-        // Browser accessibility providers may expose Invoke on structural nodes.
-        // Their actionable descendants are more precise and avoid blank-page hints.
-        if (IsStructural(snapshot.ControlType))
-        {
-            return null;
-        }
-
         // Firefox sometimes marks visible chrome buttons as offscreen. Only strong
         // interactive roles can override that flag; request clipping handles scrolling.
         if (snapshot.IsOffscreen && !CanOverrideOffscreen(snapshot.ControlType))
@@ -31,6 +24,18 @@ public static class UiaElementClassifier
         interaction |= snapshot.SupportsExpandCollapse ? ElementInteraction.ExpandCollapse : ElementInteraction.None;
         interaction |= snapshot.SupportsValue || snapshot.SupportsRangeValue ? ElementInteraction.Edit : ElementInteraction.None;
         interaction |= snapshot.IsKeyboardFocusable ? ElementInteraction.Focus : ElementInteraction.None;
+
+        // Most structural nodes are containers, but custom and web UIs commonly
+        // expose a clickable label or card as a named Text, Group, or Pane node.
+        // Keep those only when they advertise a pointer action. This continues to
+        // reject anonymous browser/document containers that would create blank
+        // page hints.
+        if (IsStructural(snapshot.ControlType) &&
+            !IsNamedActionableStructuralNode(snapshot) &&
+            !IsCompactAnonymousIconControl(snapshot))
+        {
+            return null;
+        }
 
         if (interaction == ElementInteraction.None && !IsConventionallyInteractive(snapshot.ControlType))
         {
@@ -54,7 +59,7 @@ public static class UiaElementClassifier
 
     private static ElementBounds GetTargetBounds(UiaElementSnapshot snapshot)
     {
-        if (!snapshot.SupportsExpandCollapse || snapshot.ControlType == UiaControlType.Button)
+        if (!snapshot.SupportsExpandCollapse || snapshot.ControlType is UiaControlType.Button or UiaControlType.SplitButton)
         {
             return snapshot.Bounds;
         }
@@ -109,5 +114,27 @@ public static class UiaElementClassifier
         UiaControlType.Menu or
         UiaControlType.Pane or
         UiaControlType.Text or
-        UiaControlType.ToolBar;
+        UiaControlType.ToolBar or
+        UiaControlType.AppBar or
+        UiaControlType.Tree or
+        UiaControlType.Header or
+        UiaControlType.StatusBar;
+
+    private static bool IsNamedActionableStructuralNode(UiaElementSnapshot snapshot) =>
+        snapshot.ControlType is UiaControlType.Group or UiaControlType.Pane or UiaControlType.Text &&
+        !string.IsNullOrWhiteSpace(snapshot.Name) &&
+        (snapshot.SupportsInvoke ||
+         snapshot.SupportsToggle ||
+         snapshot.SupportsSelectionItem ||
+         snapshot.SupportsExpandCollapse);
+
+    // Some web views expose icon-only buttons as unnamed Groups. Limit this
+    // exception to compact invoking surfaces so layout containers stay out.
+    private static bool IsCompactAnonymousIconControl(UiaElementSnapshot snapshot) =>
+        snapshot.ControlType is UiaControlType.Group &&
+        string.IsNullOrWhiteSpace(snapshot.Name) &&
+        snapshot.SupportsInvoke &&
+        snapshot.Bounds.Width is >= 18 and <= 96 &&
+        snapshot.Bounds.Height >= 18 &&
+        snapshot.Bounds.Height <= snapshot.Bounds.Width * 4;
 }

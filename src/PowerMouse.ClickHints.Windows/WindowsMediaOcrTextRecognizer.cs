@@ -42,9 +42,8 @@ public sealed class WindowsMediaOcrTextRecognizer : IOcrTextRecognizer
         var scaleX = image.ScreenBounds.Width / image.Bitmap.PixelWidth;
         var scaleY = image.ScreenBounds.Height / image.Bitmap.PixelHeight;
         return result.Lines
-            .Select(line => ToRegion(line, image.ScreenBounds, scaleX, scaleY))
-            .Where(region => region is not null)
-            .Select(region => region!)
+            .SelectMany(line => OcrWordGrouping.GroupLine(line.Words.Select(word =>
+                ToRegion(word, image.ScreenBounds, scaleX, scaleY))))
             .ToArray();
     }
 
@@ -61,26 +60,17 @@ public sealed class WindowsMediaOcrTextRecognizer : IOcrTextRecognizer
             : null;
     }
 
-    private RecognizedTextRegion? ToRegion(
-        OcrLine line,
+    private RecognizedTextRegion ToRegion(
+        OcrWord word,
         ElementBounds screenBounds,
         double scaleX,
         double scaleY)
     {
-        if (line.Words.Count == 0 || string.IsNullOrWhiteSpace(line.Text))
-        {
-            return null;
-        }
-
-        var left = line.Words.Min(word => word.BoundingRect.X);
-        var top = line.Words.Min(word => word.BoundingRect.Y);
-        var right = line.Words.Max(word => word.BoundingRect.X + word.BoundingRect.Width);
-        var bottom = line.Words.Max(word => word.BoundingRect.Y + word.BoundingRect.Height);
-        var bounds = new ElementBounds(
-            screenBounds.X + (left * scaleX),
-            screenBounds.Y + (top * scaleY),
-            (right - left) * scaleX,
-            (bottom - top) * scaleY);
-        return bounds.IsEmpty ? null : new RecognizedTextRegion(line.Text, bounds, estimatedConfidence);
+        var rectangle = word.BoundingRect;
+        return new RecognizedTextRegion(word.Text, new ElementBounds(
+            screenBounds.X + (rectangle.X * scaleX),
+            screenBounds.Y + (rectangle.Y * scaleY),
+            rectangle.Width * scaleX,
+            rectangle.Height * scaleY), estimatedConfidence);
     }
 }

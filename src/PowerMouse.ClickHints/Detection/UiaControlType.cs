@@ -25,4 +25,8 @@ public enum UiaControlType
     Text,
     ToolBar,
     TreeItem,
+    Tree,
+    Header,
+    StatusBar,
+    AppBar,
 }

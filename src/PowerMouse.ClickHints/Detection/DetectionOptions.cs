@@ -10,7 +10,12 @@ public sealed record DetectionOptions
 
     public bool EnableOcrFallback { get; init; } = true;
 
-    public TimeSpan SemanticTimeout { get; init; } = TimeSpan.FromMilliseconds(800);
+    // Custom and web UIs can expose enough unrelated UIA controls to meet a
+    // numeric threshold while omitting an entire panel. Keep OCR augmentation on
+    // by default; callers that prefer the legacy sparse-only behavior can opt out.
+    public bool EnableOcrAugmentation { get; init; } = true;
+
+    public TimeSpan SemanticTimeout { get; init; } = TimeSpan.FromMilliseconds(2500);
 
     public TimeSpan OcrTimeout { get; init; } = TimeSpan.FromMilliseconds(900);
 
