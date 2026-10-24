@@ -1,71 +1,53 @@
 # Architecture
 
-PowerMouse is split into a platform-neutral core and a thin Windows application layer.
-
 ## Projects
 
-### PowerMouse.Core
+| Project | Responsibility |
+|---|---|
+| `PowerMouse.Core` | Settings, profiles, key normalization, activation, movement, and button state |
+| `PowerMouse.ClickHints` | Detection contracts, target classification, merging, and hint codes |
+| `PowerMouse.ClickHints.Windows` | UI Automation, OCR, and capture interfaces |
+| `PowerMouse.App` | WinUI settings, hooks, input injection, capture, overlays, startup, tray, and logging |
 
-`PowerMouse.Core` owns the behavior that must remain deterministic and testable:
+`InputEngine.Process` converts keyboard transitions into mouse commands and a suppression decision without calling Windows APIs. `PowerMouseRuntime` connects it to the keyboard hook, movement timer, and `MouseInputService`.
 
-- profiles and JSON-safe settings models
-- virtual-key catalog and numeric-keypad normalization
-- activation shortcut state
-- held movement and alternate-speed state
-- mouse-button down/up pairing
-- wheel commands and release-on-disable safety
+`ClickHintsService` coordinates discovery, keyboard filtering, dismissal, and target activation. Providers return target data; `ClickHintsOverlayService` renders the labels. See [Mouse Hints detection](click-hints-detection.md).
 
-`InputEngine.Process` consumes keyboard transitions and returns commands plus a suppression decision. It never calls an operating-system API.
+## Input lifecycle
 
-### PowerMouse.App
+- Hook callbacks do bounded work and pass events through on failure.
+- Injected keyboard events are ignored to prevent feedback loops.
+- Disabling, changing profiles, and exiting release held buttons and movement state.
+- Suppressed keys remain suppressed through key-up, even if activation changes. Forwarded key-downs retain their matching forwarded key-ups.
+- Lock-key activation synchronizes after key-up with the committed Windows lock state. Synthetic lock-key events carry the hook-bypass tag.
+- PowerMouse yields when another application's shortcut capture stops the hook chain.
+- Numpad scan-code normalization keeps bindings consistent across Num Lock and Shift states.
+- Mouse Hints uses the shared keyboard hook and removes its temporary mouse and foreground hooks on dismissal.
 
-`PowerMouse.App` owns Windows integration:
+Closing the settings window hides it. Exit disposes command IPC, hints, the pointer indicator, tray icon, input runtime, and single-instance mutex.
 
-- `KeyboardHookService` installs `WH_KEYBOARD_LL` on a dedicated message-loop thread
-- `MouseInputService` emits batched `SendInput` events
-- `PowerMouseRuntime` connects the hook and engine and runs the movement timer
-- `TrayIconService` provides notification-area lifecycle controls
-- `CursorIndicatorService` owns the small non-activating pointer indicator window
-- `ClickHintsService` coordinates discovery, keyboard filtering, dismissal, and point-click activation
-- `ClickHintsOverlayService` paints a click-through Fluent label surface across the virtual desktop
-- `StartupService` manages the current user's Run registration
-- `PowerMouseController` coordinates settings, runtime, and error reporting
-- WinUI pages render and edit the current settings
+## Settings and startup
 
-### PowerMouse.ClickHints
+Settings live at `%LOCALAPPDATA%\PowerMouse\settings.json`. Writes use a temporary file and atomic replacement. Invalid JSON is backed up before defaults are loaded.
 
-`PowerMouse.ClickHints` is a platform-neutral detection pipeline for keyboard-addressable screen targets. It owns:
+`StartupService` uses the current user's Run entry for normal startup. Elevated startup uses a per-user scheduled task with an interactive logon trigger and highest privileges; it replaces the Run entry. No password is stored.
 
-- immutable element bounds, source, confidence, and interaction models
-- staged semantic-first detection with an optional OCR fallback
-- target clipping, de-duplication, ordering, and result limits
-- UI Automation snapshot classification without a dependency on Windows assemblies
-- deterministic, prefix-free hint-code assignment
+`AdministratorRestartService` starts an elevated replacement with a one-use readiness event. The original instance exits only after acknowledgement; the replacement waits for it to exit before starting input hooks. Cancellation or failed acknowledgement leaves the original running.
 
-Detection providers return data rather than drawing overlays or injecting input. This keeps discovery independently testable and allows multiple consumers to choose their own presentation and activation behavior.
+`SingleInstanceCommandService` forwards settings, shutdown, and hint-inspection commands through a current-user named pipe. Commands from a normal process may not reach an elevated instance.
 
-### PowerMouse.ClickHints.Windows
+Daily logs are grouped by version under `%LOCALAPPDATA%\PowerMouse\Logs`. Logging retains a bounded history and does not block startup if the directory is unavailable.
 
-`PowerMouse.ClickHints.Windows` adapts Windows UI Automation into the platform-neutral detector. It scopes discovery to a supplied HWND, requests the UIA control view, bulk-caches only classification properties, and releases live automation references before returning. It also adapts the broadly available Windows OCR engine to screen-coordinate text regions while leaving image acquisition behind `IWindowImageCapture`.
+## Overlays
 
-OCR is an optional adapter behind `IOcrTextRecognizer`. See [Mouse Hints detection research](click-hints-detection.md) for the source ordering, performance rationale, and known coverage limits.
+Both overlays render a complete off-screen GDI bitmap and present it with `UpdateLayeredWindow`. Do not mix this with `SetLayeredWindowAttributes` on the same window.
 
-The low-level hook callback does bounded work and fails open: an unexpected exception passes the keyboard event to the next hook instead of blocking input.
+The pointer indicator has its own message-loop thread. A mouse hook coalesces position updates, and keyboard movement and hint jumps signal it directly. A 16 ms timer handles missed updates and external pointer warps. Placement is clamped to monitor bounds and adjusted for DPI.
 
-## State and shutdown rules
+The indicator is a composited window, so it can lag the hardware cursor or be covered by protected shell panels.
 
-- Injected keyboard events are ignored to avoid feedback loops.
-- Every suppressed mouse-button key-down has a matching synthesized button-up.
-- Disabling, changing profiles, or exiting releases held buttons and movement state.
-- Keys captured while enabled remain suppressed through their key-up transition, even if activation changes in between.
-- Keys forwarded before activation keep their matching key-up forwarded, preventing stale held-key state in downstream hooks.
-- Synthetic lock-key events carry the centralized-hook bypass tag so they cannot retrigger cooperating keyboard services.
-- If a newer application intentionally captures keyboard input and ends the low-level hook chain, PowerMouse yields until that capture ends instead of reordering global hooks.
-- Numeric-keypad scan codes are normalized so bindings keep working across Num Lock and Shift states.
-- Mouse Hints shares the centralized keyboard hook, suppresses each captured hint key through key-up, and removes its temporary mouse and foreground hooks whenever the overlay closes.
-- Escape, a mouse button, a foreground-window change, the activation shortcut, or a completed hint sequence closes the Mouse Hints overlay.
-- Closing the window hides it; explicit Exit tears down the overlay, tray icon, hook, movement timer, and mutex in that order.
+Hint sessions use generation IDs to discard stale detection results and queued actions. Dismissal monitoring starts before discovery, and captured keys remain suppressed through key-up. Provider cancellation is cooperative; an external UI Automation call can remain blocked after the caller times out.
 
-## Settings
+## Settings UI
 
-Settings are stored as versioned JSON under `%LOCALAPPDATA%\PowerMouse`. Writes go to a process-specific temporary file and are moved into place atomically. Malformed JSON is preserved with an `invalid-<timestamp>` suffix before defaults are loaded.
+Direct children of `SettingsExpander.Items` must be `SettingsCard` controls because the default item style targets that type. Place status messages outside the item list.
