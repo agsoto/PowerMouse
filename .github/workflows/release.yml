@@ -60,18 +60,21 @@ jobs:
       - name: Install pinned release compiler
         run: ./scripts/install-release-tools.ps1
 
-      - name: Test and package Windows x64
-        run: ./scripts/prepare-release.ps1 -SkipInteractiveTests
-
       - name: Set up WinGet
         run: |
           Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope CurrentUser
-          Repair-WinGetPackageManager -AllUsers -Version '1.29.380' -Force
+          # Register the runner's provisioned client before upgrading the current user.
+          # Combining provisioning and a version upgrade can select an old bundle stub.
+          Repair-WinGetPackageManager -AllUsers
+          Repair-WinGetPackageManager -Version '1.29.380' -Force
           $env:PATH = "$env:LOCALAPPDATA\Microsoft\WindowsApps;$env:PATH"
           $version = (winget --version).Trim()
           if ($LASTEXITCODE -ne 0 -or $version -ne 'v1.29.380') { throw "Unexpected WinGet version: $version" }
           Write-Host "Validating with WinGet $version"
           "$env:LOCALAPPDATA\Microsoft\WindowsApps" >> $env:GITHUB_PATH
+
+      - name: Test and package Windows x64
+        run: ./scripts/prepare-release.ps1 -SkipInteractiveTests
 
       - name: Validate release and manifests
         run: ./scripts/test-release.ps1
