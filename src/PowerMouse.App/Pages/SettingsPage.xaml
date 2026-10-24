@@ -2,35 +2,23 @@
     x:Class="PowerMouse.App.Pages.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="using:PowerMouse.App.Controls">
+    xmlns:controls="using:PowerMouse.App.Controls"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls">
     <ScrollViewer HorizontalScrollMode="Disabled">
-        <StackPanel
-            MaxWidth="1000"
-            Margin="36,28,36,56"
-            HorizontalAlignment="Stretch">
-            <Grid Margin="0,0,0,12" ColumnSpacing="24">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Spacing="5">
-                    <TextBlock
-                        FontSize="32"
-                        FontWeight="SemiBold"
-                        Text="PowerMouse" />
-                    <TextBlock
-                        Style="{StaticResource PowerMouseCaptionStyle}"
-                        Text="Control the pointer and mouse buttons from your keyboard." />
-                </StackPanel>
-                <ToggleSwitch
-                    x:Name="EnabledToggle"
-                    Grid.Column="1"
-                    AutomationProperties.Name="Enable PowerMouse"
-                    Header="Enable PowerMouse"
-                    OffContent="Off"
-                    OnContent="On"
-                    Toggled="OnEnabledToggled" />
-            </Grid>
+        <Grid>
+            <StackPanel
+                MaxWidth="1000"
+                Margin="36,28,36,56"
+                HorizontalAlignment="Stretch">
+            <StackPanel Margin="0,0,0,12" Spacing="5">
+                <TextBlock
+                    FontSize="32"
+                    FontWeight="SemiBold"
+                    Text="PowerMouse" />
+                <TextBlock
+                    Style="{StaticResource PowerMouseCaptionStyle}"
+                    Text="Control the pointer and mouse buttons from your keyboard." />
+            </StackPanel>
 
             <InfoBar
                 x:Name="ValidationInfo"
@@ -40,46 +28,146 @@
                 Severity="Warning"
                 Title="Resolve duplicate bindings" />
 
-            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Profiles" />
-            <controls:SettingCard
-                Description="Switch between complete sets of activation, speed, and key-binding settings."
-                Header="Active profile"
-                IconGlyph="&#xE8D2;">
-                <controls:SettingCard.ActionContent>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ComboBox
-                            x:Name="ProfileCombo"
-                            Width="190"
-                            DisplayMemberPath="Name"
-                            SelectionChanged="OnProfileSelectionChanged" />
-                        <Button
-                            AutomationProperties.Name="Add profile"
-                            Click="OnAddProfileClicked"
-                            ToolTipService.ToolTip="Add profile">
-                            <FontIcon Glyph="&#xE710;" />
-                        </Button>
-                        <Button
-                            AutomationProperties.Name="Duplicate profile"
-                            Click="OnDuplicateProfileClicked"
-                            ToolTipService.ToolTip="Duplicate profile">
-                            <FontIcon Glyph="&#xE8C8;" />
-                        </Button>
-                        <Button
-                            AutomationProperties.Name="Rename profile"
-                            Click="OnRenameProfileClicked"
-                            ToolTipService.ToolTip="Rename profile">
-                            <FontIcon Glyph="&#xE70F;" />
-                        </Button>
-                        <Button
-                            x:Name="DeleteProfileButton"
-                            AutomationProperties.Name="Delete profile"
-                            Click="OnDeleteProfileClicked"
-                            ToolTipService.ToolTip="Delete profile">
-                            <FontIcon Glyph="&#xE74D;" />
-                        </Button>
-                    </StackPanel>
-                </controls:SettingCard.ActionContent>
-            </controls:SettingCard>
+            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="General" />
+            <StackPanel Spacing="2">
+                <controls:SettingCard
+                    Description="Turn keyboard-driven pointer and mouse-button control on or off."
+                    Header="Enable PowerMouse"
+                    IconGlyph="&#xE7B8;">
+                    <controls:SettingCard.ActionContent>
+                        <ToggleSwitch
+                            x:Name="EnabledToggle"
+                            AutomationProperties.Name="Enable PowerMouse"
+                            OffContent="Off"
+                            OnContent="On"
+                            Toggled="OnEnabledToggled" />
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <controls:SettingCard
+                    Description="Switch between complete sets of activation, speed, and key-binding settings."
+                    Header="Active profile"
+                    IconGlyph="&#xE8D2;">
+                    <controls:SettingCard.ActionContent>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox
+                                x:Name="ProfileCombo"
+                                Width="190"
+                                DisplayMemberPath="Name"
+                                SelectionChanged="OnProfileSelectionChanged" />
+                            <Button
+                                AutomationProperties.Name="Add profile"
+                                Click="OnAddProfileClicked"
+                                ToolTipService.ToolTip="Add profile">
+                                <FontIcon Glyph="&#xE710;" />
+                            </Button>
+                            <Button
+                                AutomationProperties.Name="Duplicate profile"
+                                Click="OnDuplicateProfileClicked"
+                                ToolTipService.ToolTip="Duplicate profile">
+                                <FontIcon Glyph="&#xE8C8;" />
+                            </Button>
+                            <Button
+                                AutomationProperties.Name="Rename profile"
+                                Click="OnRenameProfileClicked"
+                                ToolTipService.ToolTip="Rename profile">
+                                <FontIcon Glyph="&#xE70F;" />
+                            </Button>
+                            <Button
+                                x:Name="DeleteProfileButton"
+                                AutomationProperties.Name="Delete profile"
+                                Click="OnDeleteProfileClicked"
+                                ToolTipService.ToolTip="Delete profile">
+                                <FontIcon Glyph="&#xE74D;" />
+                            </Button>
+                        </StackPanel>
+                    </controls:SettingCard.ActionContent>
+                </controls:SettingCard>
+                <toolkit:SettingsExpander
+                    x:Name="StartupAndFeedbackExpander"
+                    AutomationProperties.AutomationId="StartupAndFeedbackExpander"
+                    Description="Choose startup behavior, administrator permissions, pointer feedback, and status notifications."
+                    Header="Startup and feedback">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE7E8;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard
+                            Description="Register PowerMouse for the current Windows user."
+                            Header="Start with Windows">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE7E8;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="StartWithWindowsToggle"
+                                AutomationProperties.Name="Start PowerMouse with Windows"
+                                Toggled="OnStartupToggleChanged" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            x:Name="AdministratorCard"
+                            Description="Control apps running as administrator, such as Task Manager. Windows will ask for permission."
+                            Header="Administrator mode">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE83D;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <Button
+                                x:Name="RestartAsAdministratorButton"
+                                AutomationProperties.Name="Restart PowerMouse as administrator"
+                                Click="OnRestartAsAdministratorClicked"
+                                Content="Restart as administrator" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            x:Name="AlwaysAdministratorCard"
+                            Description="Restart as administrator to change this preference."
+                            Header="Always run as administrator">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE83D;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="AlwaysAdministratorToggle"
+                                IsEnabled="False"
+                                AutomationProperties.Name="Always run PowerMouse as administrator"
+                                Toggled="OnStartupToggleChanged" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            Description="Turn mouse emulation on automatically at startup."
+                            Header="Activate emulation on startup">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE7B8;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="EnabledOnStartupToggle"
+                                AutomationProperties.Name="Activate mouse emulation on startup"
+                                Toggled="OnGeneralToggleChanged" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            Description="Display a small status marker next to the pointer while emulation is on."
+                            Header="Indicator near pointer">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE7C9;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="PointerIndicatorToggle"
+                                AutomationProperties.Name="Show indicator near pointer"
+                                Toggled="OnGeneralToggleChanged" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            Description="Show a notification when mouse emulation turns on or off."
+                            Header="Status notifications">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xEA8F;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="NotificationsToggle"
+                                AutomationProperties.Name="Show status notifications"
+                                Toggled="OnGeneralToggleChanged" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+                <InfoBar
+                    x:Name="AdministratorInfo"
+                    IsClosable="True"
+                    IsOpen="False" />
+            </StackPanel>
 
             <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Activation" />
             <StackPanel Spacing="2">
@@ -133,62 +221,45 @@
                 </controls:SettingCard>
             </StackPanel>
 
-            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Mouse Hints" />
+            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Controls" />
             <StackPanel Spacing="2">
-                <controls:SettingCard
-                    Description="Show keyboard labels over controls in the active window. Press Esc or click elsewhere to dismiss them."
-                    Header="Show hints shortcut"
-                    IconGlyph="&#xE765;">
-                    <controls:SettingCard.ActionContent>
-                        <StackPanel Orientation="Horizontal" Spacing="7">
-                            <CheckBox x:Name="MouseHintsControl" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Ctrl" Unchecked="OnMouseHintsShortcutChanged" />
-                            <CheckBox x:Name="MouseHintsAlt" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Alt" Unchecked="OnMouseHintsShortcutChanged" />
-                            <CheckBox x:Name="MouseHintsShift" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Shift" Unchecked="OnMouseHintsShortcutChanged" />
-                            <CheckBox x:Name="MouseHintsWindows" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Win" Unchecked="OnMouseHintsShortcutChanged" />
-                            <ComboBox
-                                x:Name="MouseHintsKeyCombo"
-                                Width="100"
-                                DisplayMemberPath="Name"
-                                SelectedValuePath="Code"
-                                SelectionChanged="OnMouseHintsShortcutChanged" />
-                        </StackPanel>
-                    </controls:SettingCard.ActionContent>
-                </controls:SettingCard>
-                <controls:SettingCard
-                    Description="Click the selected target automatically. When disabled, selection only moves the pointer."
-                    Header="Automatic click"
-                    IconGlyph="&#xE962;">
-                    <controls:SettingCard.ActionContent>
-                        <CheckBox
-                            x:Name="MouseHintsAutoClickCheckBox"
-                            Checked="OnMouseHintsAutoClickChanged"
-                            Content="Click after moving"
-                            Unchecked="OnMouseHintsAutoClickChanged" />
-                    </controls:SettingCard.ActionContent>
-                </controls:SettingCard>
-                <controls:SettingCard
-                    Description="Hold this modifier while typing the final hint key to temporarily switch between click and move."
-                    Header="Action modifier"
-                    IconGlyph="&#xE765;">
-                    <controls:SettingCard.ActionContent>
-                        <ComboBox
-                            x:Name="MouseHintsActionModifierCombo"
-                            Width="160"
-                            DisplayMemberPath="Name"
-                            SelectedValuePath="Modifier"
-                            SelectionChanged="OnMouseHintsActionModifierChanged" />
-                    </controls:SettingCard.ActionContent>
-                </controls:SettingCard>
-            </StackPanel>
+                <toolkit:SettingsExpander
+                    x:Name="MovementBindingsExpander"
+                    AutomationProperties.AutomationId="MovementBindingsExpander"
+                    Description="Configure the eight directional movement keys."
+                    Header="Movement bindings">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE741;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                </toolkit:SettingsExpander>
+                <toolkit:SettingsExpander
+                    x:Name="ButtonBindingsExpander"
+                    AutomationProperties.AutomationId="ButtonBindingsExpander"
+                    Description="Configure mouse-button, wheel, and scroll-step controls."
+                    Header="Mouse buttons and scrolling">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE962;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard
+                            Description="Wheel delta emitted for each keyboard repeat. Windows uses 120 as one standard wheel step."
+                            Header="Scroll step">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE70E;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <NumberBox
+                                x:Name="ScrollStepBox"
+                                Width="160"
+                                Maximum="1200"
+                                Minimum="20"
+                                SmallChange="20"
+                                SpinButtonPlacementMode="Compact"
+                                ValueChanged="OnScrollStepChanged" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
 
-            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Mouse movement" />
-            <StackPanel x:Name="MovementBindingsPanel" Spacing="2" />
-
-            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Mouse buttons and scrolling" />
-            <StackPanel x:Name="ButtonBindingsPanel" Spacing="2" />
-
-            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Speed" />
-            <StackPanel Spacing="2">
+                <TextBlock Style="{StaticResource PowerMouseSubsectionHeaderStyle}" Text="Pointer speed" />
                 <controls:SettingCard
                     Description="Pointer distance, in pixels, applied every movement update."
                     Header="Movement speed"
@@ -232,43 +303,161 @@
                             ValueChanged="OnAlternateSpeedChanged" />
                     </controls:SettingCard.ActionContent>
                 </controls:SettingCard>
+                <toolkit:SettingsExpander
+                    x:Name="AdvancedMotionExpander"
+                    AutomationProperties.AutomationId="AdvancedMotionExpander"
+                    Description="Tune acceleration and diagonal movement behavior."
+                    Header="Advanced motion">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE9D9;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard
+                            Description="Choose how pointer speed ramps up while a movement key is held. Disabled preserves constant speed."
+                            Header="Acceleration curve">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE9D9;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ComboBox
+                                x:Name="AccelerationCurveCombo"
+                                Width="190"
+                                DisplayMemberPath="Name"
+                                SelectedValuePath="Curve"
+                                SelectionChanged="OnAccelerationCurveChanged" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            x:Name="AccelerationDurationCard"
+                            Description="Time required to reach the configured movement speed."
+                            Header="Acceleration time">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE823;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <NumberBox
+                                x:Name="AccelerationDurationBox"
+                                Width="160"
+                                Header="Milliseconds"
+                                Maximum="5000"
+                                Minimum="100"
+                                SmallChange="50"
+                                SpinButtonPlacementMode="Compact"
+                                ValueChanged="OnAccelerationDurationChanged" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            x:Name="InitialSpeedCard"
+                            Description="Pointer speed at the beginning of the acceleration ramp."
+                            Header="Initial speed">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE945;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <NumberBox
+                                x:Name="InitialSpeedPercentBox"
+                                Width="160"
+                                Header="Percent"
+                                Maximum="100"
+                                Minimum="10"
+                                SmallChange="5"
+                                SpinButtonPlacementMode="Compact"
+                                ValueChanged="OnInitialSpeedPercentChanged" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            Description="Keep diagonal movement at the same overall speed as horizontal and vertical movement."
+                            Header="Normalize diagonal speed">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE741;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ToggleSwitch
+                                x:Name="NormalizeDiagonalToggle"
+                                AutomationProperties.Name="Normalize diagonal movement speed"
+                                Toggled="OnNormalizeDiagonalToggled" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
             </StackPanel>
 
-            <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Behavior" />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Style="{StaticResource PowerMouseSectionHeaderStyle}" Text="Mouse Hints" />
+                <Border
+                    Margin="0,28,0,12"
+                    Padding="8,3"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource AccentFillColorDefaultBrush}"
+                    CornerRadius="10">
+                    <TextBlock
+                        FontSize="10"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                        Text="EXPERIMENTAL" />
+                </Border>
+            </StackPanel>
             <StackPanel Spacing="2">
                 <controls:SettingCard
-                    Description="Register PowerMouse for the current Windows user."
-                    Header="Start with Windows"
-                    IconGlyph="&#xE7E8;">
+                    Description="Show keyboard-addressable labels over controls in the active window."
+                    Header="Enable Mouse Hints"
+                    IconGlyph="&#xE7BA;">
                     <controls:SettingCard.ActionContent>
-                        <ToggleSwitch x:Name="StartWithWindowsToggle" Toggled="OnGeneralToggleChanged" />
+                        <ToggleSwitch
+                            x:Name="MouseHintsEnabledToggle"
+                            AutomationProperties.Name="Enable experimental Mouse Hints"
+                            Toggled="OnMouseHintsEnabledToggled" />
                     </controls:SettingCard.ActionContent>
                 </controls:SettingCard>
-                <controls:SettingCard
-                    Description="Turn mouse emulation on automatically at startup."
-                    Header="Activate emulation on startup"
-                    IconGlyph="&#xE7B8;">
-                    <controls:SettingCard.ActionContent>
-                        <ToggleSwitch x:Name="EnabledOnStartupToggle" Toggled="OnGeneralToggleChanged" />
-                    </controls:SettingCard.ActionContent>
-                </controls:SettingCard>
-                <controls:SettingCard
-                    Description="Display a small status marker next to the pointer while emulation is on."
-                    Header="Indicator near pointer"
-                    IconGlyph="&#xE7C9;">
-                    <controls:SettingCard.ActionContent>
-                        <ToggleSwitch x:Name="PointerIndicatorToggle" Toggled="OnGeneralToggleChanged" />
-                    </controls:SettingCard.ActionContent>
-                </controls:SettingCard>
-                <controls:SettingCard
-                    Description="Show a notification when mouse emulation turns on or off."
-                    Header="Status notifications"
-                    IconGlyph="&#xEA8F;">
-                    <controls:SettingCard.ActionContent>
-                        <ToggleSwitch x:Name="NotificationsToggle" Toggled="OnGeneralToggleChanged" />
-                    </controls:SettingCard.ActionContent>
-                </controls:SettingCard>
+                <toolkit:SettingsExpander
+                    x:Name="MouseHintsSettingsPanel"
+                    AutomationProperties.AutomationId="MouseHintsDetailsExpander"
+                    Description="Configure the activation shortcut and selection behavior."
+                    Header="Hint shortcut and behavior">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE765;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard
+                            Description="Show keyboard labels over controls in the active window. Press Esc or click elsewhere to dismiss them."
+                            Header="Show hints shortcut">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE765;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <CheckBox x:Name="MouseHintsControl" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Ctrl" Unchecked="OnMouseHintsShortcutChanged" />
+                                <CheckBox x:Name="MouseHintsAlt" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Alt" Unchecked="OnMouseHintsShortcutChanged" />
+                                <CheckBox x:Name="MouseHintsShift" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Shift" Unchecked="OnMouseHintsShortcutChanged" />
+                                <CheckBox x:Name="MouseHintsWindows" MinWidth="0" Checked="OnMouseHintsShortcutChanged" Content="Win" Unchecked="OnMouseHintsShortcutChanged" />
+                                <ComboBox
+                                    x:Name="MouseHintsKeyCombo"
+                                    Width="100"
+                                    DisplayMemberPath="Name"
+                                    SelectedValuePath="Code"
+                                    SelectionChanged="OnMouseHintsShortcutChanged" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            Description="Click the selected target automatically. When disabled, selection only moves the pointer."
+                            Header="Automatic click">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE962;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <CheckBox
+                                x:Name="MouseHintsAutoClickCheckBox"
+                                Checked="OnMouseHintsAutoClickChanged"
+                                Content="Click after moving"
+                                Unchecked="OnMouseHintsAutoClickChanged" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            Description="Hold this modifier while typing the final hint key to temporarily switch between click and move."
+                            Header="Action modifier">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Glyph="&#xE765;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                            <ComboBox
+                                x:Name="MouseHintsActionModifierCombo"
+                                Width="160"
+                                DisplayMemberPath="Name"
+                                SelectedValuePath="Modifier"
+                                SelectionChanged="OnMouseHintsActionModifierChanged" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
             </StackPanel>
-        </StackPanel>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

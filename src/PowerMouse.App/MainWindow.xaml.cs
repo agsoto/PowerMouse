@@ -36,6 +36,7 @@ public sealed partial class MainWindow : Window
         var windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId = Win32Interop.GetWindowIdFromWindow(windowHandle);
         appWindow = AppWindow.GetFromWindowId(windowId);
+        appWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "PowerMouse.ico"));
         SizeAndCenterWindow(windowHandle, windowId);
         appWindow.Closing += OnWindowClosing;
 

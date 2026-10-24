@@ -16,6 +16,7 @@ internal sealed class TrayIconService : IDisposable
     private readonly nint window;
     private readonly NativeMethods.SubclassProcedure subclassProcedure;
     private NativeMethods.NotifyIconData iconData;
+    private nint ownedIcon;
     private bool disposed;
 
     public TrayIconService(nint window)
@@ -37,6 +38,12 @@ internal sealed class TrayIconService : IDisposable
         if (!NativeMethods.ShellNotifyIcon(NativeMethods.NotifyIconAdd, ref iconData))
         {
             NativeMethods.RemoveWindowSubclass(window, subclassProcedure, SubclassId);
+            if (ownedIcon != 0)
+            {
+                NativeMethods.DestroyIcon(ownedIcon);
+                ownedIcon = 0;
+            }
+
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not create the PowerMouse tray icon.");
         }
 
@@ -84,6 +91,11 @@ internal sealed class TrayIconService : IDisposable
         disposed = true;
         NativeMethods.ShellNotifyIcon(NativeMethods.NotifyIconDelete, ref iconData);
         NativeMethods.RemoveWindowSubclass(window, subclassProcedure, SubclassId);
+        if (ownedIcon != 0)
+        {
+            NativeMethods.DestroyIcon(ownedIcon);
+            ownedIcon = 0;
+        }
     }
 
     private nint WindowSubclass(
@@ -168,23 +180,41 @@ internal sealed class TrayIconService : IDisposable
         }
     }
 
-    private NativeMethods.NotifyIconData CreateIconData() => new()
+    private NativeMethods.NotifyIconData CreateIconData()
     {
-        Size = checked((uint)Marshal.SizeOf<NativeMethods.NotifyIconData>()),
-        Window = window,
-        Id = IconId,
-        Flags = NativeMethods.NotifyIconMessage |
-                NativeMethods.NotifyIconIcon |
-                NativeMethods.NotifyIconTip |
-                NativeMethods.NotifyIconShowTip,
-        CallbackMessage = CallbackMessage,
-        Icon = NativeMethods.LoadIcon(0, new nint(NativeMethods.IconApplication)),
-        Tip = "PowerMouse",
-        Info = string.Empty,
-        InfoTitle = string.Empty,
-    };
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "PowerMouse.ico");
+        ownedIcon = NativeMethods.LoadImage(
+            0,
+            iconPath,
+            NativeMethods.ImageIcon,
+            0,
+            0,
+            NativeMethods.LoadImageFromFile | NativeMethods.LoadImageDefaultSize);
+        var icon = ownedIcon != 0
+            ? ownedIcon
+            : NativeMethods.LoadIcon(NativeMethods.GetModuleHandle(null), new nint(NativeMethods.IconApplication));
+        if (icon == 0)
+        {
+            icon = NativeMethods.LoadIcon(0, new nint(NativeMethods.IconApplication));
+        }
+
+        return new NativeMethods.NotifyIconData
+        {
+            Size = checked((uint)Marshal.SizeOf<NativeMethods.NotifyIconData>()),
+            Window = window,
+            Id = IconId,
+            Flags = NativeMethods.NotifyIconMessage |
+                    NativeMethods.NotifyIconIcon |
+                    NativeMethods.NotifyIconTip |
+                    NativeMethods.NotifyIconShowTip,
+            CallbackMessage = CallbackMessage,
+            Icon = icon,
+            Tip = "PowerMouse",
+            Info = string.Empty,
+            InfoTitle = string.Empty,
+        };
+    }
 
     private static string Truncate(string value, int maximumLength) =>
         value.Length <= maximumLength ? value : value[..maximumLength];
 }
-

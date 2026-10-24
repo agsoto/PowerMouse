@@ -6,6 +6,7 @@
     <RootNamespace>PowerMouse.App</RootNamespace>
     <AssemblyName>PowerMouse</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\PowerMouse.ico</ApplicationIcon>
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
@@ -22,6 +23,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" />
     <PackageReference Include="Microsoft.WindowsAppSDK" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" />
@@ -37,6 +39,9 @@
     <Content Update="Assets/PowerMouse.svg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Update="Assets/PowerMouse-32.svg" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="Assets/PowerMouse-16.svg" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="Assets/PowerMouse.ico" CopyToOutputDirectory="PreserveNewest" />
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 

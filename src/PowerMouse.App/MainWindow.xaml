@@ -24,7 +24,7 @@
             <Image
                 Width="24"
                 Height="24"
-                Source="ms-appx:///Assets/PowerMouse.svg" />
+                Source="ms-appx:///Assets/PowerMouse-32.svg" />
             <TextBlock
                 Grid.Column="1"
                 Margin="10,0,0,0"

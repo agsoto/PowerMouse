@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="keySide" x1="32" y1="10" x2="32" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E1E1E1"/>
+      <stop offset="1" stop-color="#ADADAD"/>
+    </linearGradient>
+    <linearGradient id="keyTop" x1="32" y1="8" x2="32" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#ECECEC"/>
+    </linearGradient>
+  </defs>
+  <path d="M19 8h26c9 0 15 6 15 15v22c0 9-6 15-15 15H19C10 60 4 54 4 45V23C4 14 10 8 19 8Z" fill="url(#keySide)" stroke="#353535" stroke-width="1.5"/>
+  <path d="M20 8h24c8 0 13 5 13 13v16c0 8-5 13-13 13H20C12 50 7 45 7 37V21C7 13 12 8 20 8Z" fill="url(#keyTop)" stroke="#353535" stroke-width="1.5"/>
+  <path d="M32 18v23l5.8-5.8 5.7 12 5.1-2.4-5.7-12H51Z" fill="#303030" stroke="#F9F9F9" stroke-width="1.7" stroke-linejoin="round"/>
+</svg>

@@ -1,7 +1,9 @@
+using CommunityToolkit.WinUI.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using PowerMouse.App.Controls;
+using PowerMouse.App.Diagnostics;
 using PowerMouse.App.Services;
 using PowerMouse.Core.Models;
 
@@ -19,6 +21,13 @@ public sealed partial class SettingsPage : UserControl
         new(HotkeyModifiers.Alt, "Alt"),
         new(HotkeyModifiers.Windows, "Win"),
     ];
+    private static readonly IReadOnlyList<AccelerationCurveOption> AccelerationCurves =
+    [
+        new(AccelerationCurve.None, "Disabled"),
+        new(AccelerationCurve.Linear, "Linear"),
+        new(AccelerationCurve.EaseIn, "Ease in"),
+        new(AccelerationCurve.Smooth, "Smooth"),
+    ];
 
     private readonly PowerMouseController controller;
     private bool loading;
@@ -33,10 +42,48 @@ public sealed partial class SettingsPage : UserControl
         MouseHintsKeyCombo.ItemsSource = ShortcutKeys;
         MouseHintsActionModifierCombo.ItemsSource = MouseHintModifiers;
         AlternateSpeedKeyCombo.ItemsSource = VirtualKeyCatalog.BindableKeys;
+        AccelerationCurveCombo.ItemsSource = AccelerationCurves;
 
         AddBindingRows();
         ReloadProfiles();
         ReloadSettings();
+        if (AdministratorRestartService.IsAdministrator)
+        {
+            AdministratorCard.Description = "PowerMouse is running as administrator and can control elevated apps.";
+            RestartAsAdministratorButton.Content = "Running as administrator";
+            RestartAsAdministratorButton.IsEnabled = false;
+            AlwaysAdministratorToggle.IsEnabled = true;
+            AlwaysAdministratorCard.Description = "Use administrator permissions on future launches. Enable Start with Windows to also start elevated at sign-in.";
+        }
+    }
+
+    private async void OnRestartAsAdministratorClicked(object sender, RoutedEventArgs args)
+    {
+        _ = sender;
+        _ = args;
+        RestartAsAdministratorButton.IsEnabled = false;
+        AdministratorInfo.IsOpen = false;
+        try
+        {
+            if (await App.CurrentApp.RestartAsAdministratorAsync())
+            {
+                return;
+            }
+
+            AdministratorInfo.Severity = InfoBarSeverity.Informational;
+            AdministratorInfo.Title = "Restart canceled";
+            AdministratorInfo.Message = "PowerMouse is still running with its current permissions.";
+            AdministratorInfo.IsOpen = true;
+        }
+        catch (Exception exception) when (exception is not StackOverflowException and not OutOfMemoryException)
+        {
+            Logger.LogError("Could not restart PowerMouse as administrator.", exception);
+            AdministratorInfo.Severity = InfoBarSeverity.Error;
+            AdministratorInfo.Title = "Could not restart as administrator";
+            AdministratorInfo.Message = exception.Message;
+            AdministratorInfo.IsOpen = true;
+        }
+        RestartAsAdministratorButton.IsEnabled = true;
     }
 
     internal void SetEnabledStatus(bool enabled)
@@ -50,24 +97,24 @@ public sealed partial class SettingsPage : UserControl
 
     private void AddBindingRows()
     {
-        AddBindingRow(MovementBindingsPanel, InputAction.MoveUp, "Up", "Move the pointer upward.", "\uE74A");
-        AddBindingRow(MovementBindingsPanel, InputAction.MoveDown, "Down", "Move the pointer downward.", "\uE74B");
-        AddBindingRow(MovementBindingsPanel, InputAction.MoveLeft, "Left", "Move the pointer to the left.", "\uE76B");
-        AddBindingRow(MovementBindingsPanel, InputAction.MoveRight, "Right", "Move the pointer to the right.", "\uE76C");
-        AddBindingRow(MovementBindingsPanel, InputAction.MoveUpLeft, "Up-left", "Move diagonally upward and left.", "\u2196", useSymbolFont: true);
-        AddBindingRow(MovementBindingsPanel, InputAction.MoveUpRight, "Up-right", "Move diagonally upward and right.", "\u2197", useSymbolFont: true);
-        AddBindingRow(MovementBindingsPanel, InputAction.MoveDownLeft, "Down-left", "Move diagonally downward and left.", "\u2199", useSymbolFont: true);
-        AddBindingRow(MovementBindingsPanel, InputAction.MoveDownRight, "Down-right", "Move diagonally downward and right.", "\u2198", useSymbolFont: true);
+        AddBindingRow(MovementBindingsExpander, InputAction.MoveUp, "Up", "Move the pointer upward.", "\uE74A");
+        AddBindingRow(MovementBindingsExpander, InputAction.MoveDown, "Down", "Move the pointer downward.", "\uE74B");
+        AddBindingRow(MovementBindingsExpander, InputAction.MoveLeft, "Left", "Move the pointer to the left.", "\uE76B");
+        AddBindingRow(MovementBindingsExpander, InputAction.MoveRight, "Right", "Move the pointer to the right.", "\uE76C");
+        AddBindingRow(MovementBindingsExpander, InputAction.MoveUpLeft, "Up-left", "Move diagonally upward and left.", "\u2196", useSymbolFont: true);
+        AddBindingRow(MovementBindingsExpander, InputAction.MoveUpRight, "Up-right", "Move diagonally upward and right.", "\u2197", useSymbolFont: true);
+        AddBindingRow(MovementBindingsExpander, InputAction.MoveDownLeft, "Down-left", "Move diagonally downward and left.", "\u2199", useSymbolFont: true);
+        AddBindingRow(MovementBindingsExpander, InputAction.MoveDownRight, "Down-right", "Move diagonally downward and right.", "\u2198", useSymbolFont: true);
 
-        AddBindingRow(ButtonBindingsPanel, InputAction.LeftButton, "Left button", "Press and hold for click-and-drag.", "\uE962");
-        AddBindingRow(ButtonBindingsPanel, InputAction.RightButton, "Right button", "Press and hold for right-button dragging.", "\uE962");
-        AddBindingRow(ButtonBindingsPanel, InputAction.MiddleButton, "Middle button", "Press and hold the middle mouse button.", "\uE962");
-        AddBindingRow(ButtonBindingsPanel, InputAction.ScrollUp, "Scroll up", "Scroll one wheel step upward.", "\uE70E");
-        AddBindingRow(ButtonBindingsPanel, InputAction.ScrollDown, "Scroll down", "Scroll one wheel step downward.", "\uE70D");
+        AddBindingRow(ButtonBindingsExpander, InputAction.LeftButton, "Left button", "Press and hold for click-and-drag.", "\uE962");
+        AddBindingRow(ButtonBindingsExpander, InputAction.RightButton, "Right button", "Press and hold for right-button dragging.", "\uE962");
+        AddBindingRow(ButtonBindingsExpander, InputAction.MiddleButton, "Middle button", "Press and hold the middle mouse button.", "\uE962");
+        AddBindingRow(ButtonBindingsExpander, InputAction.ScrollUp, "Scroll up", "Scroll one wheel step upward.", "\uE70E");
+        AddBindingRow(ButtonBindingsExpander, InputAction.ScrollDown, "Scroll down", "Scroll one wheel step downward.", "\uE70D");
     }
 
     private void AddBindingRow(
-        StackPanel panel,
+        SettingsExpander expander,
         InputAction action,
         string header,
         string description,
@@ -84,20 +131,22 @@ public sealed partial class SettingsPage : UserControl
         };
         comboBox.SelectionChanged += OnBindingChanged;
 
-        var card = new SettingCard
+        var card = new SettingsCard
         {
             Header = header,
             Description = description,
-            IconGlyph = iconGlyph,
-            ActionContent = comboBox,
+            HeaderIcon = new FontIcon
+            {
+                Glyph = iconGlyph,
+                FontFamily = useSymbolFont ? new FontFamily("Segoe UI Symbol") : new FontFamily("Segoe Fluent Icons"),
+            },
+            Content = comboBox,
             Tag = action,
         };
-        if (useSymbolFont)
-        {
-            card.IconFontFamily = new FontFamily("Segoe UI Symbol");
-        }
-
-        panel.Children.Add(card);
+        var insertionIndex = ReferenceEquals(expander, ButtonBindingsExpander)
+            ? Math.Max(0, expander.Items.Count - 1)
+            : expander.Items.Count;
+        expander.Items.Insert(insertionIndex, card);
     }
 
     private void ReloadProfiles()
@@ -124,6 +173,8 @@ public sealed partial class SettingsPage : UserControl
         ShortcutShift.IsChecked = profile.ActivationShortcut.Modifiers.HasFlag(HotkeyModifiers.Shift);
         ShortcutWindows.IsChecked = profile.ActivationShortcut.Modifiers.HasFlag(HotkeyModifiers.Windows);
         ShortcutKeyCombo.SelectedValue = profile.ActivationShortcut.VirtualKey;
+        MouseHintsEnabledToggle.IsOn = settings.MouseHintsEnabled;
+        MouseHintsSettingsPanel.IsEnabled = settings.MouseHintsEnabled;
         MouseHintsControl.IsChecked = settings.MouseHintsShortcut.Modifiers.HasFlag(HotkeyModifiers.Control);
         MouseHintsAlt.IsChecked = settings.MouseHintsShortcut.Modifiers.HasFlag(HotkeyModifiers.Alt);
         MouseHintsShift.IsChecked = settings.MouseHintsShortcut.Modifiers.HasFlag(HotkeyModifiers.Shift);
@@ -134,21 +185,28 @@ public sealed partial class SettingsPage : UserControl
         MovementSpeedBox.Value = profile.MovementSpeed;
         AlternateSpeedKeyCombo.SelectedValue = profile.AlternateSpeedKey;
         AlternateSpeedBox.Value = profile.AlternateSpeed;
+        AccelerationCurveCombo.SelectedValue = profile.AccelerationCurve;
+        AccelerationDurationBox.Value = profile.AccelerationDurationMilliseconds;
+        InitialSpeedPercentBox.Value = profile.InitialSpeedPercent;
+        NormalizeDiagonalToggle.IsOn = profile.NormalizeDiagonalMovement;
+        ScrollStepBox.Value = profile.ScrollStep;
 
         StartWithWindowsToggle.IsOn = settings.StartWithWindows;
+        AlwaysAdministratorToggle.IsOn = settings.AlwaysRunAsAdministrator;
         EnabledOnStartupToggle.IsOn = settings.EnabledOnStartup;
         PointerIndicatorToggle.IsOn = settings.ShowPointerIndicator;
         NotificationsToggle.IsOn = settings.ShowNotifications;
 
-        foreach (var card in MovementBindingsPanel.Children.Concat(ButtonBindingsPanel.Children).OfType<SettingCard>())
+        foreach (var card in MovementBindingsExpander.Items.Concat(ButtonBindingsExpander.Items).OfType<SettingsCard>())
         {
-            if (card.Tag is InputAction action && card.ActionContent is ComboBox comboBox)
+            if (card.Tag is InputAction action && card.Content is ComboBox comboBox)
             {
                 comboBox.SelectedValue = profile.Bindings[action];
             }
         }
 
         UpdateActivationVisibility();
+        UpdateAccelerationState();
         loading = false;
         ValidateBindings();
     }
@@ -349,6 +407,21 @@ public sealed partial class SettingsPage : UserControl
         SaveMouseHintsShortcut();
     }
 
+    private void OnMouseHintsEnabledToggled(object sender, RoutedEventArgs args)
+    {
+        _ = sender;
+        _ = args;
+        if (loading)
+        {
+            return;
+        }
+
+        controller.Settings.MouseHintsEnabled = MouseHintsEnabledToggle.IsOn;
+        MouseHintsSettingsPanel.IsEnabled = MouseHintsEnabledToggle.IsOn;
+        controller.SaveGeneralSettings();
+        ValidateBindings();
+    }
+
     private void OnMouseHintsShortcutChanged(object sender, SelectionChangedEventArgs args)
     {
         _ = sender;
@@ -442,6 +515,81 @@ public sealed partial class SettingsPage : UserControl
         }
     }
 
+    private void OnAccelerationCurveChanged(object sender, SelectionChangedEventArgs args)
+    {
+        _ = sender;
+        _ = args;
+        if (!loading && AccelerationCurveCombo.SelectedValue is AccelerationCurve curve)
+        {
+            ActiveProfile.AccelerationCurve = curve;
+            UpdateAccelerationState();
+            SaveProfile();
+        }
+    }
+
+    private void OnAccelerationDurationChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        _ = sender;
+        if (!loading && !double.IsNaN(args.NewValue))
+        {
+            ActiveProfile.AccelerationDurationMilliseconds = checked((int)args.NewValue);
+            SaveProfile();
+        }
+    }
+
+    private void OnInitialSpeedPercentChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        _ = sender;
+        if (!loading && !double.IsNaN(args.NewValue))
+        {
+            ActiveProfile.InitialSpeedPercent = checked((int)args.NewValue);
+            SaveProfile();
+        }
+    }
+
+    private void OnNormalizeDiagonalToggled(object sender, RoutedEventArgs args)
+    {
+        _ = sender;
+        _ = args;
+        if (!loading)
+        {
+            ActiveProfile.NormalizeDiagonalMovement = NormalizeDiagonalToggle.IsOn;
+            SaveProfile();
+        }
+    }
+
+    private void OnScrollStepChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        _ = sender;
+        if (!loading && !double.IsNaN(args.NewValue))
+        {
+            ActiveProfile.ScrollStep = checked((int)args.NewValue);
+            SaveProfile();
+        }
+    }
+
+    private void OnStartupToggleChanged(object sender, RoutedEventArgs args)
+    {
+        if (loading || controller is null) return;
+        AdministratorInfo.IsOpen = false;
+        try
+        {
+            controller.SaveStartupSettings(StartWithWindowsToggle.IsOn, AlwaysAdministratorToggle.IsOn);
+        }
+        catch (Exception exception) when (exception is not StackOverflowException and not OutOfMemoryException)
+        {
+            Logger.LogError("Could not change startup preferences.", exception);
+            loading = true;
+            StartWithWindowsToggle.IsOn = controller.Settings.StartWithWindows;
+            AlwaysAdministratorToggle.IsOn = controller.Settings.AlwaysRunAsAdministrator;
+            loading = false;
+            AdministratorInfo.Severity = InfoBarSeverity.Error;
+            AdministratorInfo.Title = "Could not change startup preferences";
+            AdministratorInfo.Message = exception.Message;
+            AdministratorInfo.IsOpen = true;
+        }
+    }
+
     private void OnGeneralToggleChanged(object sender, RoutedEventArgs args)
     {
         _ = sender;
@@ -452,7 +600,6 @@ public sealed partial class SettingsPage : UserControl
         }
 
         var settings = controller.Settings;
-        settings.StartWithWindows = StartWithWindowsToggle.IsOn;
         settings.EnabledOnStartup = EnabledOnStartupToggle.IsOn;
         settings.ShowPointerIndicator = PointerIndicatorToggle.IsOn;
         settings.ShowNotifications = NotificationsToggle.IsOn;
@@ -470,6 +617,13 @@ public sealed partial class SettingsPage : UserControl
         var usesLockKey = ActiveProfile.ActivationMode == ActivationMode.LockKey;
         ActivationKeyCard.Visibility = usesLockKey ? Visibility.Visible : Visibility.Collapsed;
         ActivationShortcutCard.Visibility = usesLockKey ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void UpdateAccelerationState()
+    {
+        var isEnabled = ActiveProfile.AccelerationCurve != AccelerationCurve.None;
+        AccelerationDurationCard.IsEnabled = isEnabled;
+        InitialSpeedCard.IsEnabled = isEnabled;
     }
 
     private void ValidateBindings()
@@ -498,7 +652,8 @@ public sealed partial class SettingsPage : UserControl
             duplicateGroups.Add(VirtualKeyCatalog.GetName(profile.ActivationShortcut.VirtualKey));
         }
 
-        if (profile.ActivationMode == ActivationMode.Shortcut &&
+        if (controller.Settings.MouseHintsEnabled &&
+            profile.ActivationMode == ActivationMode.Shortcut &&
             profile.ActivationShortcut == controller.Settings.MouseHintsShortcut)
         {
             duplicateGroups.Add(controller.Settings.MouseHintsShortcut.ToString());
@@ -524,4 +679,6 @@ public sealed partial class SettingsPage : UserControl
     }
 
     private sealed record ModifierOption(HotkeyModifiers Modifier, string Name);
+
+    private sealed record AccelerationCurveOption(AccelerationCurve Curve, string Name);
 }
