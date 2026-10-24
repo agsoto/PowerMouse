@@ -66,7 +66,11 @@ jobs:
       - name: Set up WinGet
         run: |
           Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope CurrentUser
-          Repair-WinGetPackageManager -AllUsers
+          Repair-WinGetPackageManager -AllUsers -Version '1.29.380' -Force
+          $env:PATH = "$env:LOCALAPPDATA\Microsoft\WindowsApps;$env:PATH"
+          $version = (winget --version).Trim()
+          if ($LASTEXITCODE -ne 0 -or $version -ne 'v1.29.380') { throw "Unexpected WinGet version: $version" }
+          Write-Host "Validating with WinGet $version"
           "$env:LOCALAPPDATA\Microsoft\WindowsApps" >> $env:GITHUB_PATH
 
       - name: Validate release and manifests
