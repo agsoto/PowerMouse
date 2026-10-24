@@ -2,12 +2,16 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -19,10 +23,10 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
           cache: true
@@ -33,28 +37,42 @@ jobs:
 
       - name: Restore tests
         if: matrix.platform == 'x64'
-        run: dotnet restore tests/PowerMouse.Core.Tests/PowerMouse.Core.Tests.csproj
+        run: |
+          dotnet restore tests/PowerMouse.Core.Tests/PowerMouse.Core.Tests.csproj
+          dotnet restore tests/PowerMouse.ClickHints.Tests/PowerMouse.ClickHints.Tests.csproj
+          dotnet restore tests/PowerMouse.Windows.Tests/PowerMouse.Windows.Tests.csproj
 
       - name: Test core
         if: matrix.platform == 'x64'
         run: dotnet test tests/PowerMouse.Core.Tests/PowerMouse.Core.Tests.csproj --configuration Release --no-restore --logger trx --results-directory TestResults
+
+      - name: Test Mouse Hints
+        if: matrix.platform == 'x64'
+        run: dotnet test tests/PowerMouse.ClickHints.Tests/PowerMouse.ClickHints.Tests.csproj --configuration Release --no-restore --logger trx --results-directory TestResults
+
+      - name: Test Windows overlays
+        if: matrix.platform == 'x64'
+        run: dotnet test tests/PowerMouse.Windows.Tests/PowerMouse.Windows.Tests.csproj --configuration Release --no-restore --filter "TestCategory!=InteractiveDesktop" --logger trx --results-directory TestResults
 
       - name: Publish application
         run: |
           dotnet publish src/PowerMouse.App/PowerMouse.App.csproj --configuration Release -p:Platform=${{ matrix.platform }} --no-restore --output artifacts/PowerMouse-${{ matrix.platform }}
           Copy-Item LICENSE artifacts/PowerMouse-${{ matrix.platform }}/LICENSE
           Copy-Item README.md artifacts/PowerMouse-${{ matrix.platform }}/README.md
+          Copy-Item CHANGELOG.md artifacts/PowerMouse-${{ matrix.platform }}/CHANGELOG.md
 
       - name: Upload test results
         if: always() && matrix.platform == 'x64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: TestResults
           if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload application
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PowerMouse-${{ matrix.platform }}
           path: artifacts/PowerMouse-${{ matrix.platform }}
+          retention-days: 14
