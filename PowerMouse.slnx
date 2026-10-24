@@ -22,6 +22,10 @@
     </Project>
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/PowerMouse.Windows.Tests/PowerMouse.Windows.Tests.csproj">
+      <Platform Solution="*|ARM64" Project="Any CPU" />
+      <Platform Solution="*|x64" Project="Any CPU" />
+    </Project>
     <Project Path="tests/PowerMouse.ClickHints.Tests/PowerMouse.ClickHints.Tests.csproj">
       <Platform Solution="*|ARM64" Project="Any CPU" />
       <Platform Solution="*|x64" Project="Any CPU" />

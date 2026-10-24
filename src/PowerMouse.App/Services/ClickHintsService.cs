@@ -1,5 +1,6 @@
 using Microsoft.UI.Dispatching;
 using System.Runtime.InteropServices;
+using PowerMouse.App.Diagnostics;
 using PowerMouse.App.Interop;
 using PowerMouse.ClickHints.Detection;
 using PowerMouse.ClickHints.Hints;
@@ -11,6 +12,7 @@ namespace PowerMouse.App.Services;
 
 internal sealed class ClickHintsService : IDisposable
 {
+    private static readonly System.Text.Json.JsonSerializerOptions InspectionJsonOptions = new() { WriteIndented = true };
     private readonly Lock stateLock = new();
     private readonly HashSet<int> downKeys = [];
     private readonly HashSet<int> suppressedUntilKeyUp = [];
@@ -24,6 +26,8 @@ internal sealed class ClickHintsService : IDisposable
     private readonly Dictionary<string, IReadOnlyList<DetectedElement>> clusters = new(StringComparer.Ordinal);
     private CancellationTokenSource? detectionCancellation;
     private bool sessionOpen;
+    private long sessionVersion;
+    private bool hintsReady;
     private bool disposed;
 
     public ClickHintsService(PowerMouseSettings settings, DispatcherQueue dispatcherQueue)
@@ -35,11 +39,29 @@ internal sealed class ClickHintsService : IDisposable
         detector = CreateDetector();
         overlay.HintInvoked += hint => ActivateHint(hint, invertAction: false);
         dismissalMonitor = new ClickHintsDismissalMonitor(
-            () => dispatcherQueue.TryEnqueue(Dismiss),
+            QueueDismiss,
             overlay.IsHintPoint);
     }
 
     public event Action<string>? Notice;
+
+    // Explicit local diagnostic entry point. Normal injected keyboard events
+    // remain ignored, and this uses the same session and detection path.
+    public void InspectForeground()
+    {
+        long version;
+        lock (stateLock)
+        {
+            if (disposed || !settings.MouseHintsEnabled) return;
+            sessionOpen = true;
+            hintsReady = false;
+            version = ++sessionVersion;
+        }
+        dispatcherQueue.TryEnqueue(() =>
+        {
+            if (IsCurrentSession(version)) _ = ActivateAsync(version, inspect: true);
+        });
+    }
 
     public bool ProcessKey(KeyboardStroke stroke)
     {
@@ -66,16 +88,29 @@ internal sealed class ClickHintsService : IDisposable
                 return true;
             }
 
+            if (stroke.IsKeyDown && suppressedUntilKeyUp.Contains(key))
+            {
+                return true;
+            }
+
+            if (!settings.MouseHintsEnabled)
+            {
+                return false;
+            }
+
             if (stroke.IsKeyDown && !wasDown && MatchesShortcutLocked(key))
             {
                 suppressedUntilKeyUp.Add(key);
                 var activate = !sessionOpen;
                 sessionOpen = activate;
+                hintsReady = false;
+                var version = ++sessionVersion;
                 dispatcherQueue.TryEnqueue(() =>
                 {
+                    if (!IsCurrentSession(version)) return;
                     if (activate)
                     {
-                        _ = ActivateAsync();
+                        _ = ActivateAsync(version);
                     }
                     else
                     {
@@ -94,14 +129,25 @@ internal sealed class ClickHintsService : IDisposable
             {
                 suppressedUntilKeyUp.Add(key);
                 sessionOpen = false;
-                dispatcherQueue.TryEnqueue(DismissCore);
+                var version = ++sessionVersion;
+                dispatcherQueue.TryEnqueue(() =>
+                {
+                    if (IsCurrentSession(version)) DismissCore();
+                });
                 return true;
             }
 
             if (key == VirtualKeys.Back)
             {
                 suppressedUntilKeyUp.Add(key);
-                dispatcherQueue.TryEnqueue(RemoveLastCharacter);
+                if (hintsReady)
+                {
+                    var version = sessionVersion;
+                    dispatcherQueue.TryEnqueue(() =>
+                    {
+                        if (IsCurrentSession(version)) RemoveLastCharacter();
+                    });
+                }
                 return true;
             }
 
@@ -109,7 +155,14 @@ internal sealed class ClickHintsService : IDisposable
             {
                 suppressedUntilKeyUp.Add(key);
                 var invertAction = IsActionModifierDownLocked();
-                dispatcherQueue.TryEnqueue(() => AddCharacter((char)key, invertAction));
+                if (hintsReady)
+                {
+                    var version = sessionVersion;
+                    dispatcherQueue.TryEnqueue(() =>
+                    {
+                        if (IsCurrentSession(version)) AddCharacter((char)key, invertAction);
+                    });
+                }
                 return true;
             }
 
@@ -122,6 +175,26 @@ internal sealed class ClickHintsService : IDisposable
         lock (stateLock)
         {
             sessionOpen = false;
+            hintsReady = false;
+            sessionVersion++;
+        }
+
+        DismissCore();
+    }
+
+    public void ApplySettings()
+    {
+        if (settings.MouseHintsEnabled)
+        {
+            return;
+        }
+
+        lock (stateLock)
+        {
+            sessionOpen = false;
+            hintsReady = false;
+            sessionVersion++;
+            downKeys.Clear();
         }
 
         DismissCore();
@@ -150,29 +223,56 @@ internal sealed class ClickHintsService : IDisposable
         }
         catch (Exception exception) when (exception is InvalidOperationException or COMException)
         {
+            Logger.LogWarning($"OCR initialization failed; Mouse Hints will use UI Automation only. {exception.GetType().Name}: {exception.Message}");
             return new ClickHintDetector(semantic);
         }
     }
 
-    private async Task ActivateAsync()
+    private bool IsCurrentSession(long version)
     {
-        detectionCancellation?.Cancel();
-        detectionCancellation?.Dispose();
+        lock (stateLock) return !disposed && version == sessionVersion;
+    }
+
+    private void QueueDismiss()
+    {
+        long version;
+        lock (stateLock) version = sessionVersion;
+        dispatcherQueue.TryEnqueue(() =>
+        {
+            if (IsCurrentSession(version)) Dismiss();
+        });
+    }
+
+    private async Task ActivateAsync(long version, bool inspect = false)
+    {
+        DismissCore();
         detectionCancellation = new CancellationTokenSource();
         var cancellation = detectionCancellation;
         var request = ForegroundWindowTarget.TryCreate();
         if (request is null || request.TargetWindow == overlay.WindowHandle)
         {
             Dismiss();
+            cancellation.Dispose();
             return;
         }
 
         try
         {
+            // Monitor during discovery too, so a click or window switch cannot
+            // leave late labels over a target that has already changed.
+            dismissalMonitor.Start(request.TargetWindow);
             var result = await detector.DetectAsync(request, cancellation.Token);
+            Logger.LogInfo(
+                $"Mouse Hints detected {result.Elements.Count} targets in {result.Elapsed.TotalMilliseconds:0} ms. " +
+                $"OCR used={result.UsedOcrFallback}.");
+            foreach (var diagnostic in result.Diagnostics)
+            {
+                Logger.LogWarning($"Mouse Hints detection: {diagnostic}");
+            }
+
             lock (stateLock)
             {
-                if (!sessionOpen || cancellation.IsCancellationRequested)
+                if (!sessionOpen || version != sessionVersion || disposed || cancellation.IsCancellationRequested)
                 {
                     return;
                 }
@@ -191,8 +291,16 @@ internal sealed class ClickHintsService : IDisposable
                 return;
             }
 
-            ShowInitialHints(result.Elements);
-            dismissalMonitor.Start(request.TargetWindow);
+            var displayedHints = ShowInitialHints(result.Elements);
+            if (inspect)
+            {
+                WriteInspection(request, result, displayedHints);
+            }
+            lock (stateLock)
+            {
+                hintsReady = sessionOpen && version == sessionVersion && !disposed;
+                if (!hintsReady) overlay.Hide();
+            }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -200,8 +308,15 @@ internal sealed class ClickHintsService : IDisposable
         }
         catch (Exception exception) when (exception is not StackOverflowException and not OutOfMemoryException)
         {
+            if (!IsCurrentSession(version) || cancellation.IsCancellationRequested) return;
+            Logger.LogError("Mouse Hints could not inspect the active window.", exception);
             Dismiss();
             Notice?.Invoke($"Mouse Hints could not inspect this window: {exception.Message}");
+        }
+        finally
+        {
+            if (ReferenceEquals(detectionCancellation, cancellation)) detectionCancellation = null;
+            cancellation.Dispose();
         }
     }
 
@@ -248,7 +363,7 @@ internal sealed class ClickHintsService : IDisposable
         overlay.Update(result.Candidates);
     }
 
-    private void ShowInitialHints(IReadOnlyList<DetectedElement> elements)
+    private ClickHint[] ShowInitialHints(IReadOnlyList<DetectedElement> elements)
     {
         clusters.Clear();
         var groups = HintClusterEngine.Cluster(elements);
@@ -279,6 +394,25 @@ internal sealed class ClickHintsService : IDisposable
             .ToArray();
         sequenceMatcher.Reset(hints);
         overlay.Show(hints);
+        return hints;
+    }
+
+    private static void WriteInspection(DetectionRequest request, DetectionResult result, IReadOnlyList<ClickHint> hints)
+    {
+        var folder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "PowerMouse", "Diagnostics");
+        System.IO.Directory.CreateDirectory(folder);
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            CapturedAt = DateTimeOffset.UtcNow,
+            Window = (long)request.TargetWindow,
+            request.TargetBounds,
+            result.Elapsed,
+            result.Diagnostics,
+            result.Elements,
+            Hints = hints,
+        }, InspectionJsonOptions);
+        System.IO.File.WriteAllText(System.IO.Path.Combine(folder, "hints.json"), json);
     }
 
     private void ExpandCluster(string clusterId)
@@ -307,6 +441,11 @@ internal sealed class ClickHintsService : IDisposable
 
     private void ActivateHint(ClickHint hint, bool invertAction)
     {
+        lock (stateLock)
+        {
+            if (!sessionOpen || !hintsReady) return;
+        }
+
         if (clusters.ContainsKey(hint.Element.Id))
         {
             ExpandCluster(hint.Element.Id);
@@ -331,6 +470,7 @@ internal sealed class ClickHintsService : IDisposable
         }
         catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
+            Logger.LogError("Mouse Hints could not invoke the selected target.", exception);
             Notice?.Invoke(exception.Message);
         }
     }
@@ -338,7 +478,6 @@ internal sealed class ClickHintsService : IDisposable
     private void DismissCore()
     {
         detectionCancellation?.Cancel();
-        detectionCancellation?.Dispose();
         detectionCancellation = null;
         dismissalMonitor.Stop();
         overlay.Hide();

@@ -6,5 +6,7 @@
   <ItemGroup>
     <PackageReference Include="MSTest" />
     <ProjectReference Include="../../src/PowerMouse.ClickHints/PowerMouse.ClickHints.csproj" />
+    <ProjectReference Include="../../src/PowerMouse.Core/PowerMouse.Core.csproj" />
+    <Compile Include="../../src/PowerMouse.App/Services/ClickHintsService.cs" Link="App/ClickHintsService.cs" />
   </ItemGroup>
 </Project>

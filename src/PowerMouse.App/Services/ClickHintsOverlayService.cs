@@ -60,11 +60,7 @@ internal sealed class ClickHintsOverlayService : IDisposable
             module,
             0);
 
-        if (window == 0 || !NativeMethods.SetLayeredWindowAttributes(
-                window,
-                TransparentColor,
-                byte.MaxValue,
-                NativeMethods.LayeredWindowColorKey))
+        if (window == 0)
         {
             var error = Marshal.GetLastWin32Error();
             Dispose();
@@ -95,9 +91,9 @@ internal sealed class ClickHintsOverlayService : IDisposable
             virtualY,
             width,
             height,
-            NativeMethods.SetWindowPositionNoActivate | NativeMethods.SetWindowPositionShowWindow);
-        NativeMethods.InvalidateRect(window, 0, erase: true);
-        NativeMethods.UpdateWindow(window);
+            NativeMethods.SetWindowPositionNoActivate);
+        Paint(window);
+        NativeMethods.ShowWindow(window, NativeMethods.ShowWindowNoActivate);
     }
 
     public void Update(IReadOnlyList<ClickHint> value)
@@ -105,8 +101,7 @@ internal sealed class ClickHintsOverlayService : IDisposable
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(value);
         hints = value;
-        NativeMethods.InvalidateRect(window, 0, erase: true);
-        NativeMethods.UpdateWindow(window);
+        Paint(window);
     }
 
     public void Hide()
@@ -167,7 +162,8 @@ internal sealed class ClickHintsOverlayService : IDisposable
 
         if (message == NativeMethods.WmPaint)
         {
-            Paint(callbackWindow);
+            // The compositor retains the complete frame; exposure must not
+            // repeat detection, layout, or incremental drawing.
             NativeMethods.ValidateRect(callbackWindow, 0);
             return 0;
         }
@@ -177,11 +173,13 @@ internal sealed class ClickHintsOverlayService : IDisposable
 
     private void Paint(nint targetWindow)
     {
-        var deviceContext = NativeMethods.GetDC(targetWindow);
-        if (deviceContext == 0)
+        if (!NativeMethods.GetClientRect(targetWindow, out var client))
         {
             return;
         }
+
+        using var frame = new LayeredWindowFrame(Math.Max(1, client.Right), Math.Max(1, client.Bottom));
+        var deviceContext = frame.DeviceContext;
 
         var backgroundBrush = NativeMethods.CreateSolidBrush(TransparentColor);
         var badgeBrush = NativeMethods.CreateSolidBrush(BadgeColor);
@@ -191,10 +189,7 @@ internal sealed class ClickHintsOverlayService : IDisposable
         var font = CreateFont();
         try
         {
-            if (NativeMethods.GetClientRect(targetWindow, out var client))
-            {
-                _ = NativeMethods.FillRect(deviceContext, in client, backgroundBrush);
-            }
+            _ = NativeMethods.FillRect(deviceContext, in client, backgroundBrush);
 
             var oldFont = NativeMethods.SelectObject(deviceContext, font);
             var oldPen = NativeMethods.SelectObject(deviceContext, borderPen);
@@ -309,11 +304,11 @@ internal sealed class ClickHintsOverlayService : IDisposable
                     new ElementBounds(x + virtualX, y + virtualY, badgeWidth, badgeHeight)));
             }
 
-            hitTargets = renderedTargets;
-
             NativeMethods.SelectObject(deviceContext, oldBrush);
             NativeMethods.SelectObject(deviceContext, oldPen);
             NativeMethods.SelectObject(deviceContext, oldFont);
+            frame.Present(targetWindow, virtualX, virtualY, TransparentColor);
+            hitTargets = renderedTargets;
         }
         finally
         {
@@ -323,7 +318,6 @@ internal sealed class ClickHintsOverlayService : IDisposable
             NativeMethods.DeleteObject(clusterBrush);
             NativeMethods.DeleteObject(badgeBrush);
             NativeMethods.DeleteObject(backgroundBrush);
-            _ = NativeMethods.ReleaseDC(targetWindow, deviceContext);
         }
     }
 

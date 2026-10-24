@@ -9,6 +9,8 @@ internal static class MouseInputService
 {
     private const nuint CentralizedKeyboardHookBypassTag = 0x110;
 
+    public static event Action? PointerMoved;
+
     public static void Send(IReadOnlyList<MouseCommand> commands)
     {
         if (commands.Count == 0)
@@ -43,6 +45,7 @@ internal static class MouseInputService
                 },
             },
         ]);
+        PointerMoved?.Invoke();
     }
 
     public static void ClickAt(int x, int y)
@@ -62,6 +65,8 @@ internal static class MouseInputService
         {
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows could not position the pointer on the selected hint.");
         }
+
+        PointerMoved?.Invoke();
     }
 
     public static bool IsLockKeyOn(int virtualKey) => (NativeMethods.GetKeyState(virtualKey) & 1) != 0;

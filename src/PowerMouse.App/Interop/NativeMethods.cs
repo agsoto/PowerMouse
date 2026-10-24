@@ -11,6 +11,8 @@ internal static class NativeMethods
     internal const uint WinEventOutOfContext = 0x0000;
     internal const uint WmQuit = 0x0012;
     internal const uint WmPaint = 0x000F;
+    internal const uint WmTimer = 0x0113;
+    internal const uint WmMouseMove = 0x0200;
     internal const uint WmEraseBackground = 0x0014;
     internal const uint WmNonClientHitTest = 0x0084;
     internal const uint WmKeyDown = 0x0100;
@@ -56,6 +58,9 @@ internal static class NativeMethods
     internal const uint TrackPopupReturnCommand = 0x0100;
 
     internal const int IconApplication = 32512;
+    internal const uint ImageIcon = 1;
+    internal const uint LoadImageFromFile = 0x00000010;
+    internal const uint LoadImageDefaultSize = 0x00000040;
     internal const uint ClassHorizontalRedraw = 0x0002;
     internal const uint ClassVerticalRedraw = 0x0001;
     internal const uint WindowExTopMost = 0x00000008;
@@ -82,6 +87,7 @@ internal static class NativeMethods
     internal const int DrawTextSingleLine = 0x00000020;
     internal const int DrawTextNoPrefix = 0x00000800;
     internal const int NullPen = 8;
+    internal const int AlternateFill = 1;
     internal const int PenStyleSolid = 0;
     internal const int FontWeightSemiBold = 600;
     internal const uint DibRgbColors = 0;
@@ -90,6 +96,38 @@ internal static class NativeMethods
     internal const int StretchModeHalftone = 4;
 
     internal static readonly nint WindowTopMost = new(-1);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool UpdateLayeredWindow(nint window, nint screenContext,
+        in Point position, in NativeSize size, nint sourceContext, in Point source,
+        uint colorKey, nint blend, uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool PostMessage(nint window, uint message, nuint wParam, nint lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern nuint SetTimer(nint window, nuint id, uint interval, nint callback);
+
+    [DllImport("user32.dll")]
+    internal static extern nint MonitorFromPoint(Point point, uint flags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetMonitorInfo(nint monitor, ref MonitorInfo info);
+
+    [DllImport("shcore.dll")]
+    internal static extern int GetDpiForMonitor(nint monitor, int type, out uint x, out uint y);
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct MonitorInfo
+    {
+        internal uint Size;
+        internal NativeRectangle Monitor;
+        internal NativeRectangle Work;
+        internal uint Flags;
+    }
 
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     internal delegate nint HookProcedure(int code, nuint wParam, nint lParam);
@@ -176,6 +214,19 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     internal static extern nint LoadIcon(nint instance, nint iconName);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    internal static extern nint LoadImage(
+        nint instance,
+        string name,
+        uint type,
+        int desiredWidth,
+        int desiredHeight,
+        uint loadFlags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool DestroyIcon(nint icon);
 
     [DllImport("comctl32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -364,6 +415,13 @@ internal static class NativeMethods
 
     [DllImport("gdi32.dll")]
     internal static extern nint CreatePen(int style, int width, uint color);
+
+    [DllImport("gdi32.dll")]
+    internal static extern nint CreatePolygonRgn([In] Point[] points, int pointCount, int fillMode);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool FillRgn(nint deviceContext, nint region, nint brush);
 
     [DllImport("gdi32.dll")]
     internal static extern nint GetStockObject(int objectIndex);
