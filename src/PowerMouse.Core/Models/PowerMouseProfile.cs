@@ -18,6 +18,16 @@ public sealed class PowerMouseProfile
 
     public int AlternateSpeedKey { get; set; } = VirtualKeys.LeftShift;
 
+    public AccelerationCurve AccelerationCurve { get; set; }
+
+    public int AccelerationDurationMilliseconds { get; set; } = 750;
+
+    public int InitialSpeedPercent { get; set; } = 35;
+
+    public bool NormalizeDiagonalMovement { get; set; }
+
+    public int ScrollStep { get; set; } = 120;
+
     public Dictionary<InputAction, int> Bindings { get; set; } = CreateDefaultBindings();
 
     public PowerMouseProfile Snapshot() => new()
@@ -30,6 +40,11 @@ public sealed class PowerMouseProfile
         MovementSpeed = MovementSpeed,
         AlternateSpeed = AlternateSpeed,
         AlternateSpeedKey = AlternateSpeedKey,
+        AccelerationCurve = AccelerationCurve,
+        AccelerationDurationMilliseconds = AccelerationDurationMilliseconds,
+        InitialSpeedPercent = InitialSpeedPercent,
+        NormalizeDiagonalMovement = NormalizeDiagonalMovement,
+        ScrollStep = ScrollStep,
         Bindings = new Dictionary<InputAction, int>(Bindings),
     };
 
@@ -48,6 +63,14 @@ public sealed class PowerMouseProfile
         Bindings ??= CreateDefaultBindings();
         MovementSpeed = Math.Clamp(MovementSpeed, 1, 50);
         AlternateSpeed = Math.Clamp(AlternateSpeed, 1, 500);
+        if (!Enum.IsDefined(AccelerationCurve))
+        {
+            AccelerationCurve = AccelerationCurve.None;
+        }
+
+        AccelerationDurationMilliseconds = Math.Clamp(AccelerationDurationMilliseconds, 100, 5000);
+        InitialSpeedPercent = Math.Clamp(InitialSpeedPercent, 10, 100);
+        ScrollStep = Math.Clamp(ScrollStep, 20, 1200);
 
         foreach (var action in Enum.GetValues<InputAction>())
         {

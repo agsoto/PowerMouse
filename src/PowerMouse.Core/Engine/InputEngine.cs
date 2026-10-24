@@ -7,18 +7,22 @@ public sealed class InputEngine
     private static readonly IReadOnlyList<MouseCommand> NoCommands = Array.Empty<MouseCommand>();
 
     private readonly Lock stateLock = new();
+    private readonly TimeProvider timeProvider;
     private readonly HashSet<int> downKeys = [];
     private readonly HashSet<int> suppressedUntilKeyUp = [];
     private readonly HashSet<InputAction> heldMovement = [];
     private readonly HashSet<InputAction> heldButtons = [];
     private PowerMouseProfile profile;
     private bool enabled;
+    private bool movementTimerStarted;
+    private long movementStartedTimestamp;
 
-    public InputEngine(PowerMouseProfile profile, bool enabled = false)
+    public InputEngine(PowerMouseProfile profile, bool enabled = false, TimeProvider? timeProvider = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         this.profile = profile.Snapshot();
         this.enabled = enabled;
+        this.timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public event Action<bool>? EnabledChanged;
@@ -69,18 +73,6 @@ public sealed class InputEngine
                 }
 
                 result = new InputResult(true, releaseCommands);
-            }
-            else if (profile.ActivationMode == ActivationMode.LockKey &&
-                     key == profile.ActivationKey &&
-                     stroke.IsKeyDown &&
-                     !wasDown)
-            {
-                var releaseCommands = SetEnabledLocked(!enabled);
-                statusChange = enabled;
-
-                // Let the lock key reach Windows so its LED and system state remain
-                // consistent with the application's activation state.
-                result = new InputResult(false, releaseCommands);
             }
             else if (!stroke.IsKeyDown && !wasSuppressed)
             {
@@ -194,8 +186,14 @@ public sealed class InputEngine
                 y++;
             }
 
-            var speed = IsAlternateSpeedHeldLocked() ? profile.AlternateSpeed : profile.MovementSpeed;
-            return new MovementVector(x * speed, y * speed);
+            var speed = (double)(IsAlternateSpeedHeldLocked() ? profile.AlternateSpeed : profile.MovementSpeed);
+            speed *= GetAccelerationFactorLocked();
+            if (profile.NormalizeDiagonalMovement && x != 0 && y != 0)
+            {
+                speed /= Math.Sqrt(2);
+            }
+
+            return new MovementVector(ScaleAxis(x, speed), ScaleAxis(y, speed));
         }
     }
 
@@ -223,12 +221,21 @@ public sealed class InputEngine
         {
             if (isKeyDown)
             {
-                heldMovement.Add(action);
+                if (heldMovement.Add(action) && heldMovement.Count == 1)
+                {
+                    movementStartedTimestamp = timeProvider.GetTimestamp();
+                    movementTimerStarted = true;
+                }
+
                 suppressedUntilKeyUp.Add(key);
             }
             else
             {
                 heldMovement.Remove(action);
+                if (heldMovement.Count == 0)
+                {
+                    movementTimerStarted = false;
+                }
             }
 
             return InputResult.Suppressed;
@@ -239,7 +246,7 @@ public sealed class InputEngine
             if (isKeyDown)
             {
                 suppressedUntilKeyUp.Add(key);
-                var direction = action == InputAction.ScrollUp ? 120 : -120;
+                var direction = action == InputAction.ScrollUp ? profile.ScrollStep : -profile.ScrollStep;
                 return new InputResult(true, [new MouseCommand(MouseCommandKind.Wheel, direction)]);
             }
 
@@ -306,6 +313,40 @@ public sealed class InputEngine
     private bool IsAlternateSpeedHeldLocked() =>
         profile.AlternateSpeedKey != VirtualKeys.None && downKeys.Contains(profile.AlternateSpeedKey);
 
+    private double GetAccelerationFactorLocked()
+    {
+        if (profile.AccelerationCurve == AccelerationCurve.None || !movementTimerStarted)
+        {
+            return 1;
+        }
+
+        var progress = Math.Clamp(
+            timeProvider.GetElapsedTime(movementStartedTimestamp).TotalMilliseconds /
+            Math.Max(1, profile.AccelerationDurationMilliseconds),
+            0,
+            1);
+        var curvedProgress = profile.AccelerationCurve switch
+        {
+            AccelerationCurve.Linear => progress,
+            AccelerationCurve.EaseIn => progress * progress,
+            AccelerationCurve.Smooth => progress * progress * (3 - (2 * progress)),
+            _ => 1,
+        };
+        var initialFactor = Math.Clamp(profile.InitialSpeedPercent, 1, 100) / 100d;
+        return initialFactor + ((1 - initialFactor) * curvedProgress);
+    }
+
+    private static int ScaleAxis(int direction, double speed)
+    {
+        if (direction == 0)
+        {
+            return 0;
+        }
+
+        var magnitude = Math.Max(1, checked((int)Math.Round(speed, MidpointRounding.AwayFromZero)));
+        return direction * magnitude;
+    }
+
     private IReadOnlyList<MouseCommand> SetEnabledLocked(bool value)
     {
         if (enabled == value)
@@ -327,6 +368,7 @@ public sealed class InputEngine
 
         heldButtons.Clear();
         heldMovement.Clear();
+        movementTimerStarted = false;
         return commands;
     }
 

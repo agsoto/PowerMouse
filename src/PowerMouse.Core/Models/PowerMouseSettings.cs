@@ -4,7 +4,7 @@ namespace PowerMouse.Core.Models;
 
 public sealed class PowerMouseSettings
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -12,9 +12,13 @@ public sealed class PowerMouseSettings
 
     public bool StartWithWindows { get; set; }
 
+    public bool AlwaysRunAsAdministrator { get; set; }
+
     public bool ShowNotifications { get; set; } = true;
 
     public bool ShowPointerIndicator { get; set; }
+
+    public bool MouseHintsEnabled { get; set; } = true;
 
     public HotkeyGesture MouseHintsShortcut { get; set; } = new()
     {

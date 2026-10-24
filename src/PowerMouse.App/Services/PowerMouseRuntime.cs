@@ -109,6 +109,19 @@ internal sealed class PowerMouseRuntime : IDisposable
 
         var result = engine.Process(stroke);
         SendSafely(result.Commands);
+
+        // A lock key's low-level key-down arrives before Windows commits the
+        // toggle bit. Synchronize after key-up so the OS lock state is the source
+        // of truth, including changes made by another switch or application.
+        if (!stroke.IsInjected &&
+            !stroke.IsKeyDown &&
+            activeProfile.ActivationMode == ActivationMode.LockKey &&
+            KeyNormalizer.Normalize(stroke) == activeProfile.ActivationKey)
+        {
+            var lockIsOn = MouseInputService.IsLockKeyOn(activeProfile.ActivationKey);
+            SendSafely(engine.SetEnabled(lockIsOn));
+        }
+
         return result.Suppress;
     }
 

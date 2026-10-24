@@ -8,17 +8,16 @@ namespace PowerMouse.Core.Tests;
 public sealed class InputEngineTests
 {
     [TestMethod]
-    public void LockKeyTogglesWithoutSuppressingSystemLockState()
+    public void LockKeyPassesThroughWithoutInferringItsToggleState()
     {
         var engine = CreateEngine();
 
-        var result = engine.Process(Down(VirtualKeys.ScrollLock));
+        var keyDown = engine.Process(Down(VirtualKeys.ScrollLock));
+        var keyUp = engine.Process(Up(VirtualKeys.ScrollLock));
 
-        Assert.IsTrue(engine.IsEnabled);
-        Assert.IsFalse(result.Suppress);
-        engine.Process(Up(VirtualKeys.ScrollLock));
-        engine.Process(Down(VirtualKeys.ScrollLock));
         Assert.IsFalse(engine.IsEnabled);
+        Assert.IsFalse(keyDown.Suppress);
+        Assert.IsFalse(keyUp.Suppress);
     }
 
     [TestMethod]
@@ -62,7 +61,7 @@ public sealed class InputEngineTests
         var engine = CreateEngine();
 
         var keyDown = engine.Process(Down(VirtualKeys.Numpad8));
-        engine.Process(Down(VirtualKeys.ScrollLock));
+        engine.SetEnabled(true);
         var keyUp = engine.Process(Up(VirtualKeys.Numpad8));
 
         Assert.IsFalse(keyDown.Suppress);
@@ -79,6 +78,62 @@ public sealed class InputEngineTests
         engine.Process(Down(VirtualKeys.Numpad7));
 
         Assert.AreEqual(new MovementVector(-20, -20), engine.GetMovement());
+    }
+
+    [TestMethod]
+    public void DiagonalMovementCanBeNormalized()
+    {
+        var profile = new PowerMouseProfile { NormalizeDiagonalMovement = true };
+        var engine = new InputEngine(profile, enabled: true);
+
+        engine.Process(Down(VirtualKeys.Numpad7));
+
+        Assert.AreEqual(new MovementVector(-14, -14), engine.GetMovement());
+    }
+
+    [TestMethod]
+    public void LinearAccelerationRampsFromInitialToConfiguredSpeed()
+    {
+        var clock = new ManualTimeProvider();
+        var profile = new PowerMouseProfile
+        {
+            MovementSpeed = 20,
+            AccelerationCurve = AccelerationCurve.Linear,
+            AccelerationDurationMilliseconds = 1000,
+            InitialSpeedPercent = 25,
+        };
+        var engine = new InputEngine(profile, enabled: true, timeProvider: clock);
+
+        engine.Process(Down(VirtualKeys.Numpad6));
+        Assert.AreEqual(new MovementVector(5, 0), engine.GetMovement());
+
+        clock.Advance(TimeSpan.FromMilliseconds(500));
+        Assert.AreEqual(new MovementVector(13, 0), engine.GetMovement());
+
+        clock.Advance(TimeSpan.FromMilliseconds(500));
+        Assert.AreEqual(new MovementVector(20, 0), engine.GetMovement());
+    }
+
+    [TestMethod]
+    public void AccelerationRestartsAfterMovementStops()
+    {
+        var clock = new ManualTimeProvider();
+        var profile = new PowerMouseProfile
+        {
+            MovementSpeed = 20,
+            AccelerationCurve = AccelerationCurve.Linear,
+            AccelerationDurationMilliseconds = 1000,
+            InitialSpeedPercent = 25,
+        };
+        var engine = new InputEngine(profile, enabled: true, timeProvider: clock);
+
+        engine.Process(Down(VirtualKeys.Numpad6));
+        clock.Advance(TimeSpan.FromSeconds(1));
+        Assert.AreEqual(new MovementVector(20, 0), engine.GetMovement());
+
+        engine.Process(Up(VirtualKeys.Numpad6));
+        engine.Process(Down(VirtualKeys.Numpad6));
+        Assert.AreEqual(new MovementVector(5, 0), engine.GetMovement());
     }
 
     [TestMethod]
@@ -178,6 +233,17 @@ public sealed class InputEngineTests
     }
 
     [TestMethod]
+    public void WheelUsesConfiguredStep()
+    {
+        var profile = new PowerMouseProfile { ScrollStep = 240 };
+        var engine = new InputEngine(profile, enabled: true);
+
+        var result = engine.Process(Down(VirtualKeys.Divide));
+
+        Assert.AreEqual(240, result.Commands.Single().Data);
+    }
+
+    [TestMethod]
     public void InjectedKeyboardInputIsIgnored()
     {
         var engine = CreateEngine(enabled: true);
@@ -209,4 +275,15 @@ public sealed class InputEngineTests
     private static KeyboardStroke Down(int key) => new(key, 0, false, true);
 
     private static KeyboardStroke Up(int key) => new(key, 0, false, false);
+
+    private sealed class ManualTimeProvider : TimeProvider
+    {
+        private long timestamp;
+
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+
+        public override long GetTimestamp() => timestamp;
+
+        public void Advance(TimeSpan elapsed) => timestamp += elapsed.Ticks;
+    }
 }
