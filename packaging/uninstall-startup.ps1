@@ -31,10 +31,15 @@ try {
     }
     finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($scheduler) }
 
-    $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-    $entry = Get-ItemPropertyValue -LiteralPath $runKey -Name PowerMouse -ErrorAction SilentlyContinue
-    if ($entry -ieq ('"' + $executable + '"') -or $entry -ieq $executable) {
-        Remove-ItemProperty -LiteralPath $runKey -Name PowerMouse
+    $runKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\Microsoft\Windows\CurrentVersion\Run', $true)
+    if ($null -ne $runKey) {
+        try {
+            $entry = $runKey.GetValue('PowerMouse', $null)
+            if ($entry -ieq ('"' + $executable + '"') -or $entry -ieq $executable) {
+                $runKey.DeleteValue('PowerMouse', $false)
+            }
+        }
+        finally { $runKey.Dispose() }
     }
     # Settings/logs and startup entries pointing to another installation are preserved.
     exit 0

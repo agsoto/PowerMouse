@@ -12,13 +12,19 @@ $dataDir = Join-Path $env:LOCALAPPDATA 'PowerMouse'
 $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\PowerMouse.lnk'
 $uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B1293760-1F68-47D9-9000-F2B4071C66AE}_is1'
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+function Get-PowerMouseStartupEntry {
+    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\Microsoft\Windows\CurrentVersion\Run')
+    if ($null -eq $key) { return $null }
+    try { $key.GetValue('PowerMouse', $null) }
+    finally { $key.Dispose() }
+}
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $taskName = "PowerMouse Startup $sid"
 foreach ($path in @($installDir, $dataDir, $shortcut, $uninstallKey)) {
     if (Test-Path -LiteralPath $path) { throw "Refusing to touch an existing installation or data: $path" }
 }
 if (Get-Process PowerMouse -ErrorAction SilentlyContinue) { throw 'PowerMouse is already running. Use a disposable account.' }
-if (Get-ItemPropertyValue -LiteralPath $runKey -Name PowerMouse -ErrorAction SilentlyContinue) { throw 'Existing startup entry found.' }
+if ($null -ne (Get-PowerMouseStartupEntry)) { throw 'Existing startup entry found.' }
 if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) { throw 'Existing startup task found.' }
 $version = ([string][Diagnostics.FileVersionInfo]::GetVersionInfo($installer).ProductVersion).Trim()
 if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'The installer does not contain a valid release version.' }
@@ -59,7 +65,7 @@ Invoke-Setup (Join-Path $installDir 'unins000.exe') 'uninstall.log'
 foreach ($path in @($uninstallKey, $shortcut, $executable)) {
     if (Test-Path -LiteralPath $path) { throw "Uninstall left behind $path." }
 }
-if (Get-ItemPropertyValue -LiteralPath $runKey -Name PowerMouse -ErrorAction SilentlyContinue) { throw 'Uninstall left the startup registry entry.' }
+if ($null -ne (Get-PowerMouseStartupEntry)) { throw 'Uninstall left the startup registry entry.' }
 if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) { throw 'Uninstall left the startup task.' }
 if ((Get-FileHash -LiteralPath $settings).Hash -ne $settingsHash) { throw 'Uninstall changed user settings.' }
 Write-Host 'Silent install, metadata, shortcut, reinstall, startup cleanup, and data preservation passed.'
