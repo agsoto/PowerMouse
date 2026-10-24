@@ -11,6 +11,7 @@ First stable release for Windows 11 x64. Mouse Hints remains experimental.
 - An independent Mouse Hints toggle and local detection diagnostics.
 - Grouped settings, updated icons, and an Open logs folder action.
 - Local install and uninstall scripts that preserve settings by default.
+- A per-user Windows installer, draft-release automation, checksums, and WinGet manifest preparation.
 
 ### Improved
 

@@ -38,6 +38,9 @@ function Get-RunningPowerMouse {
 
 Assert-SafeRemovalDirectory -Path $installFullPath
 Assert-SafeRemovalDirectory -Path $backupPath
+if (Test-Path -LiteralPath (Join-Path $installFullPath 'unins000.exe')) {
+    throw 'This PowerMouse installation is managed by the Windows installer. Uninstall it through Windows Installed apps so its registration and startup entries are removed.'
+}
 if ($PurgeData) {
     Assert-SafeRemovalDirectory -Path $dataPath
 }

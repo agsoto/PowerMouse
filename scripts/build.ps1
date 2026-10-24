@@ -8,7 +8,9 @@ param(
 
     [string]$OutputPath,
 
-    [switch]$SkipTests
+    [switch]$SkipTests,
+
+    [switch]$SkipInteractiveTests
 )
 
 $ErrorActionPreference = 'Stop'
@@ -39,7 +41,9 @@ try {
         dotnet test tests\PowerMouse.ClickHints.Tests\PowerMouse.ClickHints.Tests.csproj --configuration $Configuration --no-restore
         if ($LASTEXITCODE -ne 0) { throw "Click Hints tests failed with exit code $LASTEXITCODE." }
 
-        dotnet test tests\PowerMouse.Windows.Tests\PowerMouse.Windows.Tests.csproj --configuration $Configuration
+        $windowsTestArguments = @('test', 'tests\PowerMouse.Windows.Tests\PowerMouse.Windows.Tests.csproj', '--configuration', $Configuration)
+        if ($SkipInteractiveTests) { $windowsTestArguments += @('--filter', 'TestCategory!=InteractiveDesktop') }
+        & dotnet @windowsTestArguments
         if ($LASTEXITCODE -ne 0) { throw "Windows overlay tests failed with exit code $LASTEXITCODE." }
     }
 

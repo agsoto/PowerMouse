@@ -113,6 +113,10 @@ Assert-SafeInstallDirectory -Path $installFullPath
 Assert-SafeInstallDirectory -Path $stagingPath
 Assert-SafeInstallDirectory -Path $backupPath
 
+if (Test-Path -LiteralPath (Join-Path $installFullPath 'unins000.exe')) {
+    throw 'This PowerMouse installation is managed by the Windows installer. Update it with the release setup executable, or choose a separate -InstallPath for a developer build.'
+}
+
 if ($Platform -eq 'Auto') {
     $Platform = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'ARM64' } else { 'x64' }
 }

@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'packaging/**'
+      - 'scripts/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check version and tag
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          $version = ./scripts/get-release-version.ps1
+          $tag = "v$version"
+          if ($env:EVENT_NAME -eq 'push' -and $env:REF_NAME -cne $tag) { throw 'Tag and application version differ.' }
+          if ($env:EVENT_NAME -eq 'workflow_dispatch' -and $env:REF_NAME -cne $env:DEFAULT_BRANCH) { throw 'Dispatch releases from the default branch.' }
+          $tagCommit = git rev-parse --verify "refs/tags/$tag^{commit}" 2>$null
+          if ($env:EVENT_NAME -ne 'pull_request' -and $LASTEXITCODE -eq 0 -and $tagCommit -ne (git rev-parse HEAD)) { throw 'The version tag belongs to another commit.' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          # A missing tag is expected for manual dispatch; gh creates it at GITHUB_SHA.
+          exit 0
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Install pinned release compiler
+        run: ./scripts/install-release-tools.ps1
+
+      - name: Test and package Windows x64
+        run: ./scripts/prepare-release.ps1 -SkipInteractiveTests
+
+      - name: Set up WinGet
+        run: |
+          Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery -Scope CurrentUser
+          Repair-WinGetPackageManager -AllUsers
+          "$env:LOCALAPPDATA\Microsoft\WindowsApps" >> $env:GITHUB_PATH
+
+      - name: Validate release and manifests
+        run: ./scripts/test-release.ps1
+
+      - name: Test unattended installer lifecycle
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./scripts/test-installer.ps1 -InstallerPath "artifacts/release/$env:VERSION/PowerMouse-$env:VERSION-win-x64-setup.exe" -AllowCurrentUserChanges
+
+      - name: Upload release candidates
+        uses: actions/upload-artifact@v7
+        with:
+          name: PowerMouse-release-${{ steps.version.outputs.version }}
+          path: artifacts/release/${{ steps.version.outputs.version }}/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload installer diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-diagnostics
+          path: artifacts/release/*/installer-test/
+          if-no-files-found: ignore
+
+  draft:
+    if: github.event_name != 'pull_request'
+    needs: package
+    runs-on: windows-2025
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: PowerMouse-release-${{ needs.package.outputs.version }}
+          path: release-assets
+
+      - name: Create or update draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.package.outputs.tag }}
+          VERSION: ${{ needs.package.outputs.version }}
+          TARGET_COMMIT: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseJson = gh release view $env:RELEASE_TAG --json isDraft 2>$null
+          $exists = $LASTEXITCODE -eq 0
+          if ($exists -and -not ($releaseJson | ConvertFrom-Json).isDraft) { throw 'Refusing to overwrite a published release.' }
+          if (-not $exists) {
+            gh release create $env:RELEASE_TAG --draft --target $env:TARGET_COMMIT --title "PowerMouse $env:RELEASE_TAG" --generate-notes
+            if ($LASTEXITCODE -ne 0) { throw 'Draft release creation failed.' }
+          }
+          $files = @(
+            "release-assets/PowerMouse-$env:VERSION-win-x64-setup.exe",
+            "release-assets/PowerMouse-$env:VERSION-win-x64-setup.exe.sha256",
+            "release-assets/PowerMouse-$env:VERSION-win-x64.zip",
+            "release-assets/PowerMouse-$env:VERSION-win-x64.zip.sha256",
+            'release-assets/SHA256SUMS.txt'
+          )
+          gh release upload $env:RELEASE_TAG @files --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Release asset upload failed.' }

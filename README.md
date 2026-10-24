@@ -41,15 +41,15 @@ Useful for keyboard-focused workflows, repetitive pointer tasks, and switching b
 
 The stable release targets **Windows 11 x64**.
 
-1. Download `PowerMouse-1.0.0-win-x64.zip` from [GitHub Releases](https://github.com/agsoto/PowerMouse/releases).
-2. Extract it to a permanent folder.
-3. Run `PowerMouse.exe`.
+Download `PowerMouse-1.0.0-win-x64-setup.exe` from [GitHub Releases](https://github.com/agsoto/PowerMouse/releases) and run it. The installer adds a Start menu shortcut and an entry in Windows **Installed apps**. Installation is per user; settings and logs are preserved on upgrade and uninstall. Exit PowerMouse from the tray before updating or uninstalling.
 
-Keep the extracted files together. The app is self-contained; no separate .NET installation is needed. Archives are unsigned, so Windows may show an unknown-publisher warning.
+For a portable copy, download `PowerMouse-1.0.0-win-x64.zip`, extract it to a permanent folder, and run `PowerMouse.exe`. Keep the extracted files together. The app is self-contained; no separate .NET installation is needed. Packages are unsigned, so Windows may show an unknown-publisher warning.
+
+WinGet publication is being prepared under `AGSoto.PowerMouse`; catalog availability is pending. See [Releasing](RELEASING.md) for the release and submission process.
 
 Select the tray icon to open settings. Right-click it to toggle mouse control or exit.
 
-Each packaged archive has a `.sha256` file. To verify a download:
+Each installer and archive has a `.sha256` file; `SHA256SUMS.txt` lists both. To verify a download:
 
 ```powershell
 Get-FileHash .\PowerMouse-1.0.0-win-x64.zip -Algorithm SHA256
@@ -122,13 +122,15 @@ To build and install locally:
 
 Run it again to update. The default location is `%LOCALAPPDATA%\Programs\PowerMouse`; settings are preserved and the previous build is kept in `PowerMouse.previous`. Close an elevated instance from the tray before updating.
 
+If that folder is already managed by the release installer, use the installer to update it or choose a separate `-InstallPath` for a developer build.
+
 Uninstall with `./scripts/uninstall-dev.ps1`. Add `-PurgeData` to remove settings and logs.
 
 ## Contributing
 
 Bug reports, feature ideas, and focused pull requests are welcome. Start with [Contributing](CONTRIBUTING.md).
 
-Developer guides: [Architecture](docs/architecture.md) · [Mouse Hints detection](docs/click-hints-detection.md) · [Testing](docs/testing.md).
+Developer guides: [Architecture](docs/architecture.md) · [Mouse Hints detection](docs/click-hints-detection.md) · [Testing](docs/testing.md) · [Releasing](RELEASING.md).
 
 ## Security
 
